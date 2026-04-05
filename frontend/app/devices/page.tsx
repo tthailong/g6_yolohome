@@ -1,7 +1,6 @@
 "use client";
 
 import Sidebar from "@/components/dashboard/Sidebar";
-import DevicesSidebar from "@/components/dashboard/DevicesSidebar";
 import DeviceCard, { AddDeviceCard } from "@/components/dashboard/DeviceCard";
 import type { DeviceCardData } from "@/components/dashboard/DeviceCard";
 
@@ -66,7 +65,7 @@ const rooms: { name: string; devices: DeviceCardData[] }[] = [
         status: "on",
         isActive: true,
         icon: <LightIcon />,
-        href: "/living-room",
+        href: "/devices/lamp",
       },
       {
         id: "d2",
@@ -198,7 +197,7 @@ export default function DevicesPage() {
 
   return (
     <div className="flex min-h-screen bg-[#0E0E0E] text-white font-sans overflow-hidden">
-      <DevicesSidebar />
+      <Sidebar />
 
       <div className="flex flex-col flex-1 min-w-0 ml-20">
         <DevicesTopNav />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import DevicesSidebar from "@/components/dashboard/DevicesSidebar";
+import Sidebar from "@/components/dashboard/Sidebar";
 import LightTopNav from "@/components/dashboard/LightTopNav";
 
 /* ── Icons ───────────────────────────────────────────────────────── */
@@ -32,16 +32,35 @@ export default function SmartLightPage() {
 
   return (
     <div className="flex min-h-screen bg-[#0E0E0E] text-white font-sans overflow-hidden">
-      <DevicesSidebar />
+      <Sidebar />
 
       <div className="flex flex-col flex-1 min-w-0 md:ml-20">
         <LightTopNav 
-          showNotifications={showRightPanel}
-          onToggleNotifications={() => setShowRightPanel((v) => !v)}
+          showNotifications={false}
+          onToggleNotifications={() => {}}
         />
 
-        <main className="flex-1 mt-14 overflow-hidden flex flex-row">
-          
+        <main className="flex-1 mt-14 overflow-hidden flex flex-row relative">
+          {/* Sidebar Toggle Button (Dedicated) */}
+          <button
+            onClick={() => setShowRightPanel(!showRightPanel)}
+            className="absolute top-1/2 -translate-y-1/2 right-0 z-20 w-8 h-12 flex items-center justify-center rounded-l-xl transition-all duration-300"
+            style={{ 
+              background: "#1A1A1A", 
+              border: "1px solid #262626", 
+              borderRight: "none",
+              marginRight: showRightPanel ? "340px" : "0px",
+              boxShadow: "-4px 0 12px rgba(0,0,0,0.5)"
+            }}
+          >
+            <svg 
+              width="18" height="18" viewBox="0 0 24 24" fill="none" 
+              className={`transition-transform duration-500 ${showRightPanel ? "rotate-180" : ""}`}
+            >
+              <path d="M15 18L9 12L15 6" stroke={showRightPanel ? "#FDD34D" : "#ADAAAA"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+
           {/* ── Left Column: Main Light Control ── */}
           <div className="flex-1 overflow-y-auto px-8 py-8 md:py-12 flex flex-col items-center w-full transition-all duration-300 scrollbar-hide">
             

@@ -27,6 +27,8 @@ dist/
 .DS_Store
 *.pem
 Thumbs.db
+.vscode/
+.idea/
 
 # debug
 npm-debug.log*
