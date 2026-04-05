@@ -1,0 +1,98 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: hsl(0 0% 5.5%);
+  --color-foreground: hsl(0 0% 100%);
+
+  --color-card: hsl(0 0% 7.5%);
+  --color-card-foreground: hsl(0 0% 100%);
+
+  --color-popover: hsl(0 0% 7.5%);
+  --color-popover-foreground: hsl(0 0% 100%);
+
+  --color-primary: hsl(44 97% 64%);
+  --color-primary-foreground: hsl(44 100% 18%);
+
+  --color-secondary: hsl(0 0% 14.9%);
+  --color-secondary-foreground: hsl(0 0% 100%);
+
+  --color-muted: hsl(0 0% 14.9%);
+  --color-muted-foreground: hsl(0 1% 67%);
+
+  --color-accent: hsl(0 0% 14.9%);
+  --color-accent-foreground: hsl(0 0% 100%);
+
+  --color-destructive: hsl(14 100% 57%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+
+  --color-border: hsl(0 0% 28%);
+  --color-input: hsl(0 0% 28%);
+  --color-ring: hsl(44 97% 64%);
+
+  --radius: 0.75rem;
+}
+
+:root {
+  /* Legacy HSL values for shadcn/ui components that reference var(--border) etc. */
+  --background: 0 0% 5.5%;
+  --foreground: 0 0% 100%;
+  --card: 0 0% 7.5%;
+  --card-foreground: 0 0% 100%;
+  --popover: 0 0% 7.5%;
+  --popover-foreground: 0 0% 100%;
+  --primary: 44 97% 64%;
+  --primary-foreground: 44 100% 18%;
+  --secondary: 0 0% 14.9%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 0 0% 14.9%;
+  --muted-foreground: 0 1% 67%;
+  --accent: 0 0% 14.9%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 14 100% 57%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 28%;
+  --input: 0 0% 28%;
+  --ring: 44 97% 64%;
+
+  /* Dashboard custom tokens */
+  --dash-bg: #0E0E0E;
+  --dash-card: #131313;
+  --dash-card-hover: #1A1A1A;
+  --dash-border: #484847;
+  --dash-muted: #ADAAAA;
+  --dash-yellow: #FDD34D;
+  --dash-orange: #FF5722;
+  --dash-orange-warm: #FF7351;
+  --dash-purple: #F5D1FB;
+  --dash-green: #EBFFE7;
+  --dash-sidebar: #1A1A1A;
+  --dash-elevated: #262626;
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html, body {
+    background-color: #0E0E0E;
+    color: #ffffff;
+    font-family: 'Plus Jakarta Sans', -apple-system, Roboto, Helvetica, sans-serif;
+  }
+
+  body {
+    @apply bg-[#0E0E0E] text-white;
+  }
+
+  :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  pre,
+  code {
+    overflow-x: auto;
+    white-space: pre;
+  }
+}
