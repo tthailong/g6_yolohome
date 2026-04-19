@@ -16,10 +16,11 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, index=True, nullable=False)
     role = Column(Enum(UserRole), default=UserRole.member, nullable=False)
+    email = Column(String(100), unique=True, nullable=False)
+    phone = Column(String(20), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
     
-    # New columns
     supervisor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     admin_id = Column(Integer, ForeignKey("admin.id"), nullable=True)
 
@@ -33,7 +34,10 @@ class Home(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
+    adafruitiokey = Column(String(255), nullable=False)
+    adafruitiouser = Column(String(255), nullable=False)
     owner_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
 
     # Relationships
     owner = relationship("User", back_populates="homes")
@@ -49,17 +53,30 @@ class Admin(Base):
 
     # Relationships
     users = relationship("User", back_populates="admin")
-    devices = relationship("Device", back_populates="admin")
+    device_types = relationship("DeviceType", back_populates="admin")
+
+class DeviceType(Base):
+    __tablename__ = "device_types"
+
+    id = Column(Integer, primary_key=True, index=True)
+    type_name = Column(String(50), nullable=False)
+    icon_url = Column(String(255), nullable=True)
+    admin_id = Column(Integer, ForeignKey("admin.id"))
+
+    # Relationships
+    admin = relationship("Admin", back_populates="device_types")
+    devices = relationship("Device", back_populates="device_type")
 
 class Device(Base):
     __tablename__ = "devices"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
-    status = Column(Boolean, default=False)
-    home_id = Column(Integer, ForeignKey("home.id"))
-    admin_id = Column(Integer, ForeignKey("admin.id"))
+    device_type_id = Column(Integer, ForeignKey("device_types.id"))
+    adafruit_feed_name = Column(String(100), nullable=False)
+    home_id = Column(Integer, ForeignKey("home.id", ondelete="CASCADE"))
+    created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
 
     # Relationships
     home = relationship("Home", back_populates="devices")
-    admin = relationship("Admin", back_populates="devices")
+    device_type = relationship("DeviceType", back_populates="devices")

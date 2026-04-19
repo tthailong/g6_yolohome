@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from jose import jwt
 from dotenv import load_dotenv
 import os
-from models import User
+from models import User, Admin
 from deps import db_dependency, bcrypt_context
 
 load_dotenv()
@@ -35,8 +35,16 @@ def authenticate_user(username: str, password: str, db):
         return False
     return user
 
-def create_access_token(username: str, user_id: int, expires_delta: timedelta):
-    encode = {'sub': username, 'id': user_id}
+def authenticate_admin(username: str, password: str, db):
+    admin = db.query(Admin).filter(Admin.username == username).first()
+    if not admin:
+        return False
+    if not bcrypt_context.verify(password, admin.password):
+        return False
+    return admin
+
+def create_access_token(username: str, user_id: int, role: str, expires_delta: timedelta):
+    encode = {'sub': username, 'id': user_id, 'role': role}
     expires = datetime.now(timezone.utc) + expires_delta
     encode.update({'exp': expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -55,7 +63,16 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
-    token = create_access_token(user.username, user.id, timedelta(minutes=20))
+    token = create_access_token(user.username, user.id, 'user', timedelta(minutes=20))
+
+    return {'access_token': token, 'token_type': 'bearer'}
+
+@router.post('/admin/token', response_model=Token)
+async def login_admin_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
+    admin = authenticate_admin(form_data.username, form_data.password, db)
+    if not admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate admin")
+    token = create_access_token(admin.username, admin.id, 'admin', timedelta(minutes=20))
 
     return {'access_token': token, 'token_type': 'bearer'}
 

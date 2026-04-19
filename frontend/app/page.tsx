@@ -8,11 +8,13 @@ import StatCards from "@/components/dashboard/StatCards";
 import TemperatureChart from "@/components/dashboard/TemperatureChart";
 import FaceDetectionChart from "@/components/dashboard/FaceDetectionChart";
 import RecentActivity from "@/components/dashboard/RecentActivity";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 export default function DashboardPage() {
   const [showNotifications, setShowNotifications] = useState(true);
 
   return (
+    <ProtectedRoute>
     <div className="flex min-h-screen bg-[#0E0E0E] text-white font-sans overflow-hidden">
       {/* Fixed Left Sidebar */}
       <Sidebar />
@@ -57,5 +59,6 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

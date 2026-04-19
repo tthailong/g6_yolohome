@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 import models, schemas
 from database import Base, engine, SessionLocal
-from routers import auth
+from routers import auth, devices, homes, device_types
 from deps import db_dependency
 
 app = FastAPI(
@@ -29,3 +29,6 @@ def health_check():
     return {"status": "success", "message": "Health check complete"}
 
 app.include_router(auth.router)
+app.include_router(devices.router)
+app.include_router(homes.router)
+app.include_router(device_types.router)

@@ -54,7 +54,7 @@ next-env.d.ts
 .agents/
 
 # python
-.venv/
+venv/
 __pycache__/
 *.py[cod]
 *$py.class
