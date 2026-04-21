@@ -36,8 +36,7 @@ CREATE TABLE IF NOT EXISTS device_types (
     id INT AUTO_INCREMENT PRIMARY KEY,
     type_name VARCHAR(50) NOT NULL, -- Ví dụ: 'Light', 'Temperature', 'Humi'
     icon_url VARCHAR(255),          -- Để Frontend hiển thị icon tương ứng
-    admin_id INT,
-    CONSTRAINT fk_type_admin FOREIGN KEY (admin_id) REFERENCES admin(id)
+    admin_id INT
 );
 
 -- 2. Thiết bị thực tế trong nhà của User
@@ -45,9 +44,19 @@ CREATE TABLE IF NOT EXISTS devices (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,      -- Tên User đặt: 'Đèn phòng ngủ'
     device_type_id INT,              -- Liên kết tới loại thiết bị của Admin
-    adafruit_feed_name VARCHAR(100) NOT NULL, -- QUAN TRỌNG: Feed name trên Adafruit
     home_id INT,
+    owner_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2.1 Cảm biến/Feed Adafruit (Một thiết bị có thể có nhiều sensors)
+CREATE TABLE IF NOT EXISTS sensors (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    device_id INT NOT NULL,
+    sensor_type VARCHAR(50) NOT NULL, -- 'temperature', 'humidity', 'light'
+    feed_name VARCHAR(100) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_sensor_device FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
 );
 
 -- 3. Thêm các Foreign Key (Deferred Constraints)
@@ -61,12 +70,13 @@ ALTER TABLE home
 
 ALTER TABLE devices 
     ADD CONSTRAINT fk_device_home FOREIGN KEY (home_id) REFERENCES home(id) ON DELETE CASCADE,
-    ADD CONSTRAINT fk_device_type FOREIGN KEY (device_type_id) REFERENCES device_types(id)
+    ADD CONSTRAINT fk_device_type FOREIGN KEY (device_type_id) REFERENCES device_types(id);
 
 ALTER TABLE device_types
     ADD CONSTRAINT fk_type_admin FOREIGN KEY (admin_id) REFERENCES admin(id);
 -- 4. Thêm dữ liệu mẫu (Sử dụng INSERT IGNORE để tránh lỗi trùng lặp)
 
 INSERT INTO admin (username, password) VALUES ('adminapp', 'adminapp');
+-- INSERT INTO users (username, role, email, phone, password, supervisor_id, admin_id) VALUES ('hailong', 'owner', 'superlongblue@gmail.com', '0123456789', 'hashed_password', NULL, 1);
 -- INSERT IGNORE INTO users (username, password) VALUES ('admin', 'hashed_password_here');
 -- INSERT IGNORE INTO devices (name, status, home_id) VALUES ('Smart Lamp', false, 1);

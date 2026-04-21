@@ -5,22 +5,25 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Key, Lock, Zap, HelpCircle } from "lucide-react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { homeService } from "@/lib/api/homes";
 
 export default function CreateHome() {
   const router = useRouter();
   const [homeName, setHomeName] = useState('');
   const [aioKey, setAioKey] = useState('');
-  const [aioPassword, setAioPassword] = useState('');
+  const [aioUser, setAioUser] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      // In the future: post to backend API here (homeService.createHome)
-      console.log('Creating sanctuary:', { homeName, aioKey, aioPassword });
-      
-      // Navigate back to homes after successful creation
+      await homeService.createHome({
+        name: homeName,
+        adafruitiokey: aioKey,
+        adafruitiouser: aioUser
+      });
+      console.log('Sanctuary created successfully');
       router.push('/homes');
     } catch (error) {
        console.error("Failed to create sanctuary", error);
@@ -84,15 +87,15 @@ export default function CreateHome() {
 
               <div className="space-y-2">
                 <label className="block text-[#ADAAAA] text-[10px] font-bold uppercase tracking-[1.5px]">
-                  Adafruit IO Password
+                  Adafruit IO Username
                 </label>
                 <div className="relative">
                   <input
-                    type="password"
-                    value={aioPassword}
-                    onChange={(e) => setAioPassword(e.target.value)}
-                    placeholder="Your secret AIO token"
-                    className="w-full bg-[#000000] border border-[#484847]/50 text-white placeholder-[#6B7280] rounded-xl py-4 px-5 focus:outline-none focus:ring-1 focus:ring-[#FDD34D] transition-colors pr-12"
+                    type="text"
+                    value={aioUser}
+                    onChange={(e) => setAioUser(e.target.value)}
+                    placeholder="Your Adafruit IO Username"
+                    className="w-full bg-[#000000] border border-[#484847]/50  text-white placeholder-[#6B7280] rounded-xl py-4 px-5 focus:outline-none focus:ring-1 focus:ring-[#FDD34D] transition-colors pr-12"
                     required
                   />
                   <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-[#ADAAAA]">

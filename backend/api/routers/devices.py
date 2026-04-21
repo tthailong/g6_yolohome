@@ -1,47 +1,60 @@
-from pydantic import BaseModel
-from typing import Optional
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, HTTPException, Depends
+from sqlalchemy.orm import Session
+from typing import List
 
-from models import Device, Admin, User
-from deps import db_dependency, user_dependency, admin_dependency
+import models, schemas
+from deps import db_dependency, user_dependency
 
 router = APIRouter(
     prefix="/devices",
     tags=["devices"]
 )
 
-class DeviceBase(BaseModel):
-    name: str
-    status: bool
-    home_id: int
-
-class DeviceCreate(DeviceBase):
-    pass
-
-@router.get('/')
+@router.get('/', response_model=schemas.Device)
 def get_device(db: db_dependency, user: user_dependency, device_id: int):
-    return db.query(Device).filter(Device.id == device_id).first()
+    device = db.query(models.Device).filter(models.Device.id == device_id).first()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return device
 
-@router.get('/devices')
+@router.get('/devices', response_model=List[schemas.Device])
 def get_devices(db: db_dependency, user: user_dependency):
-    return db.query(Device).all()
+    return db.query(models.Device).all()
 
-@router.post('/', status_code=status.HTTP_201_CREATED)
-def create_device(db: db_dependency, user: user_dependency, device: DeviceCreate):
-    user_db = db.query(User).filter(User.id == user.get('id')).first()
-    if not user_db:
-         raise HTTPException(status_code=404, detail="User not found")
-         
-    db_device = Device(**device.model_dump(), admin_id=user_db.admin_id)
+@router.post('/', status_code=status.HTTP_201_CREATED, response_model=schemas.Device)
+def create_device(db: db_dependency, user: user_dependency, device: schemas.DeviceCreate):
+    user_id = user.get('id')
+    
+    # 1. Create the physical device 
+    db_device = models.Device(
+        name=device.name,
+        device_type_id=device.device_type_id,
+        home_id=device.home_id,
+        owner_id=user_id
+    )
     db.add(db_device)
+    db.commit()
+    db.refresh(db_device)
+    
+    # 2. Add the sensors/feeds
+    for sensor_data in device.sensors:
+        db_sensor = models.Sensor(
+            sensor_type=sensor_data.sensor_type,
+            feed_name=sensor_data.feed_name,
+            device_id=db_device.id
+        )
+        db.add(db_sensor)
+    
     db.commit()
     db.refresh(db_device)
     return db_device
 
-@router.delete('/')
+@router.delete('/{device_id}')
 def delete_device(db: db_dependency, user: user_dependency, device_id: int):
-    db_device = db.query(Device).filter(Device.id==device_id).first()
-    if db_device:
-        db.delete(db_device)
-        db.commit()
-    return db_device
+    db_device = db.query(models.Device).filter(models.Device.id == device_id).first()
+    if not db_device:
+        raise HTTPException(status_code=404, detail="Device not found")
+        
+    db.delete(db_device)
+    db.commit()
+    return {"message": "Device deleted successfully"}

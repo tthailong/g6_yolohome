@@ -17,16 +17,16 @@ export default function Sidebar() {
     >
       <div className="flex flex-col items-center gap-8 w-full">
         {/* Logo */}
-        <div className="flex justify-center w-full mb-2">
+        <Link href="/homes" className="flex justify-center w-full mb-2 cursor-pointer">
           <div
             className="w-10 h-10 flex items-center justify-center rounded-xl"
             style={{ background: "#FDD34D" }}
           >
             <span className="font-manrope font-bold text-xl" style={{ color: "#5C4900", lineHeight: "28px" }}>
-              L
+              G6
             </span>
           </div>
-        </div>
+        </Link>
 
         {/* Nav links */}
         <nav className="flex flex-col items-center gap-2 w-full">
@@ -48,8 +48,11 @@ export default function Sidebar() {
 
           {/* Members (Placeholder) */}
           <div className="relative flex justify-center w-full py-3 rounded-xl cursor-pointer hover:bg-[#1A1A1A] transition-colors">
-            <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-              <path d="M0 16V13.2C0 12.6333 0.145833 12.1125 0.4375 11.6375C0.729167 11.1625 1.11667 10.8 1.6 10.55C2.63333 10.0333 3.68333 9.64583 4.75 9.3875C5.81667 9.12917 6.9 9 8 9C9.1 9 10.1833 9.12917 11.25 9.3875C12.3167 9.64583 13.3667 10.0333 14.4 10.55C14.8833 10.8 15.2708 11.1625 15.5625 11.6375C15.8542 12.1125 16 12.6333 16 13.2V16H0ZM18 16V13C18 12.2667 17.7958 11.5625 17.3875 10.8875C16.9792 10.2125 16.4 9.63333 15.65 9.15C16.5 9.25 17.3 9.42083 18.05 9.6625C18.8 9.90417 19.5 10.2 20.15 10.55C20.75 10.8833 21.2083 11.2542 21.525 11.6625C21.8417 12.0708 22 12.5167 22 13V16H18ZM14 4C14 4.7 13.8792 5.375 13.6375 6.025C13.3958 6.675 13.05 7.26667 12.6 7.8C12.8333 7.97917 13.0667 7.9375 13.3 7.9375C13.5333 7.97917 13.7667 8 14 8C15.1 8 16.0417 7.60833 16.825 6.825C17.6083 6.04167 18 5.1 18 4C18 2.9 17.6083 1.95833 16.825 1.175C16.0417 0.391667 15.1 0 14 0C13.7667 0 13.5333 0.0125 13.3 0.0375C13.0667 0.0625 12.8333 0.116667 12.6 0.2C13.05 0.733333 13.3958 1.325 13.6375 1.975C13.8792 2.625 14 3.3 14 4Z" fill="#ADAAAA"/>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path 
+                d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" 
+                fill="#ADAAAA"
+              />
             </svg>
           </div>
 

@@ -41,7 +41,7 @@ A modern, responsive smart home dashboard built with Next.js and Tailwind CSS.
    npm install
    ```
 
-3. Setup Database:
+3. Setup Database (only first time):
    ```bash
    mysql -u root -p < backend/g6yolohome.sql
    ```

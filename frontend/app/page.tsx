@@ -12,6 +12,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 export default function DashboardPage() {
   const [showNotifications, setShowNotifications] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   return (
     <ProtectedRoute>
@@ -25,6 +26,8 @@ export default function DashboardPage() {
         <TopNav
           showNotifications={showNotifications}
           onToggleNotifications={() => setShowNotifications((v) => !v)}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
         />
 
         {/* Dashboard Content Container */}
@@ -37,7 +40,7 @@ export default function DashboardPage() {
               <StatCards />
 
               <div className="grid grid-cols-1 gap-8">
-                <TemperatureChart />
+                <TemperatureChart selectedDate={selectedDate} />
                 <FaceDetectionChart />
               </div>
             </section>

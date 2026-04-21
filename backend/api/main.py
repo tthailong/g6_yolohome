@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 import models, schemas
 from database import Base, engine, SessionLocal
-from routers import auth, devices, homes, device_types
+from routers import auth, devices, homes, device_types, dashboard
 from deps import db_dependency
 
 app = FastAPI(
@@ -32,3 +32,4 @@ app.include_router(auth.router)
 app.include_router(devices.router)
 app.include_router(homes.router)
 app.include_router(device_types.router)
+app.include_router(dashboard.router)

@@ -14,7 +14,8 @@ class HomeBase(BaseModel):
     name: str
 
 class HomeCreate(HomeBase):
-    pass
+    adafruitiokey: str
+    adafruitiouser: str
 
 @router.get('/')
 def get_home(db: db_dependency, user: user_dependency, home_id: int):
@@ -26,7 +27,12 @@ def get_homes(db: db_dependency, user: user_dependency):
 
 @router.post('/', status_code=status.HTTP_201_CREATED)
 def create_home(db: db_dependency, user: user_dependency, home: HomeCreate):
-    db_home = Home(**home.model_dump(), owner_id=user.get('id'))
+    db_home = Home(
+        name=home.name,
+        adafruitiokey=home.adafruitiokey.strip(),
+        adafruitiouser=home.adafruitiouser.strip(),
+        owner_id=user.get('id')
+    )
     db.add(db_home)
     db.commit()
     db.refresh(db_home)

@@ -4,6 +4,16 @@ from typing import List
 
 import models, schemas
 from deps import db_dependency
+from pydantic import BaseModel
+from typing import Optional
+
+class DeviceTypeBase(BaseModel):
+    type_name: str
+    icon_url: Optional[str] = None
+    admin_id: Optional[int] = None
+
+class DeviceTypeCreate(DeviceTypeBase):
+    pass
 
 router = APIRouter(
     prefix="/device_types",

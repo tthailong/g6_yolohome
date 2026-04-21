@@ -21,6 +21,8 @@ ALGORITHM = os.getenv("AUTH_ALGORITHM")
 
 class UserCreateRequest(BaseModel):
     username: str
+    email: str
+    phone: str
     password: str
 
 class Token(BaseModel):
@@ -53,6 +55,8 @@ def create_access_token(username: str, user_id: int, role: str, expires_delta: t
 async def create_user(db: db_dependency, create_user_request: UserCreateRequest):
     create_user_model = User(
         username=create_user_request.username,
+        email=create_user_request.email,
+        phone=create_user_request.phone,
         password=bcrypt_context.hash(create_user_request.password),
     )
     db.add(create_user_model)

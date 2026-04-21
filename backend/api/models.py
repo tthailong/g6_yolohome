@@ -28,6 +28,7 @@ class User(Base):
     supervisor = relationship("User", remote_side=[id], backref="subordinates")
     admin = relationship("Admin", back_populates="users")
     homes = relationship("Home", back_populates="owner")
+    devices = relationship("Device", back_populates="owner")
 
 class Home(Base):
     __tablename__ = "home"
@@ -73,10 +74,24 @@ class Device(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     device_type_id = Column(Integer, ForeignKey("device_types.id"))
-    adafruit_feed_name = Column(String(100), nullable=False)
     home_id = Column(Integer, ForeignKey("home.id", ondelete="CASCADE"))
+    owner_id = Column(Integer, ForeignKey("users.id")) # Unified owner reference
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
 
     # Relationships
     home = relationship("Home", back_populates="devices")
     device_type = relationship("DeviceType", back_populates="devices")
+    owner = relationship("User", back_populates="devices")
+    sensors = relationship("Sensor", back_populates="device", cascade="all, delete-orphan")
+
+class Sensor(Base):
+    __tablename__ = "sensors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(Integer, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False)
+    sensor_type = Column(String(50), nullable=False) # e.g., 'temperature', 'humidity'
+    feed_name = Column(String(100), nullable=False)
+    created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
+
+    # Relationships
+    device = relationship("Device", back_populates="sensors")

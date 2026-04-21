@@ -20,7 +20,9 @@ export default function Register() {
       e.preventDefault();
       try {
           const response = await axios.post('http://localhost:8000/auth/', {
-              username: email,
+              username: fullName,
+              email: email,
+              phone: phone,
               password: password
           });
           login(email, password);

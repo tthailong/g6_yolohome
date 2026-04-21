@@ -33,19 +33,34 @@ class DeviceType(DeviceTypeBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
 
+# --- Sensor Schemas ---
+class SensorBase(BaseModel):
+    sensor_type: str
+    feed_name: str
+    device_id: Optional[int] = None
+
+class SensorCreate(SensorBase):
+    pass
+
+class Sensor(SensorBase):
+    id: int
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
 # --- Device Schemas ---
 class DeviceBase(BaseModel):
     name: str
-    adafruit_feed_name: str
     device_type_id: Optional[int] = None
     home_id: Optional[int] = None
+    owner_id: Optional[int] = None
 
 class DeviceCreate(DeviceBase):
-    pass
+    sensors: List[SensorCreate] = []
 
 class Device(DeviceBase):
     id: int
     created_at: datetime
+    sensors: List[Sensor] = []
     model_config = ConfigDict(from_attributes=True)
 
 # --- Home Schemas ---
