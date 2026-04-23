@@ -8,11 +8,14 @@ import StatCards from "@/components/dashboard/StatCards";
 import TemperatureChart from "@/components/dashboard/TemperatureChart";
 import FaceDetectionChart from "@/components/dashboard/FaceDetectionChart";
 import RecentActivity from "@/components/dashboard/RecentActivity";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 export default function DashboardPage() {
   const [showNotifications, setShowNotifications] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   return (
+    <ProtectedRoute>
     <div className="flex min-h-screen bg-[#0E0E0E] text-white font-sans overflow-hidden">
       {/* Fixed Left Sidebar */}
       <Sidebar />
@@ -23,6 +26,8 @@ export default function DashboardPage() {
         <TopNav
           showNotifications={showNotifications}
           onToggleNotifications={() => setShowNotifications((v) => !v)}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
         />
 
         {/* Dashboard Content Container */}
@@ -35,7 +40,7 @@ export default function DashboardPage() {
               <StatCards />
 
               <div className="grid grid-cols-1 gap-8">
-                <TemperatureChart />
+                <TemperatureChart selectedDate={selectedDate} />
                 <FaceDetectionChart />
               </div>
             </section>
@@ -57,5 +62,6 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

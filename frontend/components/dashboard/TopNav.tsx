@@ -150,11 +150,14 @@ function CalendarPopup({
 export default function TopNav({
   showNotifications = true,
   onToggleNotifications,
+  selectedDate,
+  onSelectDate,
 }: {
   showNotifications?: boolean;
   onToggleNotifications?: () => void;
+  selectedDate: Date;
+  onSelectDate: (d: Date) => void;
 }) {
-  const [selectedDate, setSelectedDate] = useState(new Date(2026, 2, 13)); // Mar 13 2026
   const [calOpen, setCalOpen] = useState(false);
 
   const weekday = selectedDate.toLocaleDateString("en-US", { weekday: "long" });
@@ -207,7 +210,7 @@ export default function TopNav({
         {calOpen && (
           <CalendarPopup
             selected={selectedDate}
-            onSelect={setSelectedDate}
+            onSelect={onSelectDate}
             onClose={() => setCalOpen(false)}
           />
         )}
