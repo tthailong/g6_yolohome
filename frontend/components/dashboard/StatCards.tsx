@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { dashboardService, SensorSummary } from "@/lib/api/dashboard";
+import { WebSocketClient } from "@/lib/api/socket";
 
 function TemperatureCard({ value }: { value: string | number }) {
   return (
@@ -102,8 +103,29 @@ export default function StatCards() {
     };
 
     fetchSummary();
-    const interval = setInterval(fetchSummary, 30000); // Update every 30s
-    return () => clearInterval(interval);
+    
+    // Setup WebSocket for real-time updates
+    const ws = new WebSocketClient(1, (message) => {
+      if (message.type === "SENSOR_UPDATE") {
+        setData(prevData => prevData.map(sensor => {
+          if (sensor.sensor_type === 'temperature' && message.feed_name.includes('temp')) {
+             return { ...sensor, last_value: message.value };
+          }
+           if (sensor.sensor_type === 'humidity' && message.feed_name.includes('humid')) {
+             return { ...sensor, last_value: message.value };
+          }
+          // fallback if feed name matches exactly
+          if (sensor.sensor_id.toString() === message.feed_name || sensor.device_name === message.feed_name) {
+             return { ...sensor, last_value: message.value };
+          }
+          return sensor;
+        }));
+      }
+    });
+
+    ws.connect();
+
+    return () => ws.disconnect();
   }, []);
 
   const tempSensor = data.find(s => s.sensor_type === 'temperature');

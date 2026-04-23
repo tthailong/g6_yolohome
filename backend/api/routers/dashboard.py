@@ -34,8 +34,10 @@ async def get_sensor_history(
     
     # 3. Calculate time range
     try:
-        start_date = datetime.strptime(date, "%Y-%m-%d")
-        end_date = start_date + timedelta(days=1)
+        requested_date = datetime.strptime(date, "%Y-%m-%d")
+        # Go back one day and forward one day to cover all possible timezone shifts
+        start_date = requested_date - timedelta(days=1)
+        end_date = requested_date + timedelta(days=2)
         
         start_time = start_date.isoformat() + "Z"
         end_time = end_date.isoformat() + "Z"

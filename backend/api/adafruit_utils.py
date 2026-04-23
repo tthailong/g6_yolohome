@@ -25,7 +25,8 @@ class AdafruitIOClient:
         """
         params = {
             "start_time": start_time,
-            "end_time": end_time
+            "end_time": end_time,
+            "limit": 1000
         }
         async with httpx.AsyncClient() as client:
             response = await client.get(

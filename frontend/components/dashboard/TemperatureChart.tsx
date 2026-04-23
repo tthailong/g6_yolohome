@@ -10,8 +10,8 @@ const timeLabels = [
   "16:00","17:00","18:00","19:00","20:00","21:00","22:00","23:00",
 ];
 
-const tempYLabels = ["50°C", "25°C", "0°C"];
-const humidYLabels = ["100%", "50%", "0%"];
+const tempYLabels = ["50°C", "40°C", "30°C", "20°C", "10°C", "0°C"];
+const humidYLabels = ["100%", "80%", "60%", "40%", "20%", "0%"];
 
 /* ── Zoom constants ───────────────────────────────────────── */
 const ZOOM_TOTAL_W = 800;   
@@ -50,9 +50,10 @@ function ViewToggle({
 
 const generatePath = (data: number[], height: number, max: number) => {
   if (data.length === 0) return "";
-  const stepX = 812 / (data.length - 1 || 1);
+  // Each index represents 3 minutes. Total day is 1440 minutes.
   return data.map((val, i) => {
-    const x = i * stepX;
+    const totalMins = i * 3;
+    const x = (totalMins / 1440) * 812;
     const y = height - (val / max) * height;
     return `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
   }).join(" ");
@@ -85,6 +86,11 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
         // For now using sensor_id 1 for temp, 2 for humid based on install_dht20.sql
         const sensorId = isTemp ? 1 : 2; 
         const data = await dashboardService.getHistory(sensorId, dateStr);
+        console.log(`DEBUG: Fetched ${data.length} history items for sensor ${sensorId}`);
+        if (data.length > 0) {
+           console.log(`DEBUG: Latest data point: ${data[0].created_at}, value: ${data[0].value}`);
+           console.log(`DEBUG: Oldest data point: ${data[data.length-1].created_at}`);
+        }
         setHistory(data);
       } catch (error) {
         console.error("Failed to fetch history:", error);
@@ -94,6 +100,8 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
     };
 
     fetchHistory();
+    const interval = setInterval(fetchHistory, 180000); // 3 minutes
+    return () => clearInterval(interval);
   }, [selectedDate, activeTab, isTemp]);
 
   useEffect(() => {
@@ -104,13 +112,31 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
     return () => ro.disconnect();
   }, []);
 
-  // Process data for the chart (aggregate to 24 slots)
-  const chartData = Array(24).fill(0).map((_, hour) => {
-    const hourData = history.filter(d => new Date(d.created_at).getHours() === hour);
-    if (hourData.length === 0) return 0;
-    const avg = hourData.reduce((acc, curr) => acc + parseFloat(curr.value), 0) / hourData.length;
-    return avg;
+  // Process data for the chart (aggregate to 480 slots: 24h * 20 slices of 3 mins)
+  const chartData = Array(24 * 20).fill(0);
+  const counts = Array(24 * 20).fill(0);
+
+  const startOfDay = new Date(selectedDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const startTs = startOfDay.getTime();
+
+  history.forEach(d => {
+    const dTs = new Date(d.created_at).getTime();
+    const diffMins = (dTs - startTs) / (1000 * 60);
+    const index = Math.floor(diffMins / 3);
+    
+    if (index >= 0 && index < 480) {
+      chartData[index] += parseFloat(d.value);
+      counts[index]++;
+    }
   });
+
+  // Calculate averages
+  for (let i = 0; i < 480; i++) {
+    if (counts[i] > 0) {
+      chartData[i] = chartData[i] / counts[i];
+    }
+  }
 
   const chartPath = generatePath(chartData, 256, isTemp ? 50 : 100);
 
@@ -162,9 +188,9 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
 
       <div className="flex gap-0 w-full">
         <div className="flex flex-col justify-between shrink-0 pb-6" style={{ width: "36px", height: "216px" }}>
-          <span className="font-jakarta font-bold text-[10px]" style={{ color: "#ADAAAA" }}>{yLabels[0]}</span>
-          <span className="font-jakarta font-bold text-[10px]" style={{ color: "#ADAAAA" }}>{yLabels[1]}</span>
-          <span className="font-jakarta font-bold text-[10px]" style={{ color: "#ADAAAA" }}>{yLabels[2]}</span>
+          {yLabels.map(label => (
+            <span key={label} className="font-jakarta font-bold text-[10px]" style={{ color: "#ADAAAA" }}>{label}</span>
+          ))}
         </div>
 
         <div
@@ -182,14 +208,17 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
             >
               <g transform="translate(0, 10)">
                 <line x1="0" y1="6"   x2="812" y2="6"   stroke="#484847" strokeWidth="1.03" strokeDasharray="2.06 2.06" />
-                <line x1="0" y1="128" x2="812" y2="128" stroke="#484847" strokeWidth="1.03" strokeDasharray="2.06 2.06" />
+                <line x1="0" y1="56"  x2="812" y2="56"  stroke="#484847" strokeWidth="1.03" strokeDasharray="2.06 2.06" />
+                <line x1="0" y1="106" x2="812" y2="106" stroke="#484847" strokeWidth="1.03" strokeDasharray="2.06 2.06" />
+                <line x1="0" y1="156" x2="812" y2="156" stroke="#484847" strokeWidth="1.03" strokeDasharray="2.06 2.06" />
+                <line x1="0" y1="206" x2="812" y2="206" stroke="#484847" strokeWidth="1.03" strokeDasharray="2.06 2.06" />
                 <line x1="0" y1="256" x2="812" y2="256" stroke="#484847" strokeWidth="1.03" />
 
                 {zoom && timeLabels.map((_, i) => (
                   <line
                     key={i}
-                    x1={i * (812 / 23)} y1="0"
-                    x2={i * (812 / 23)} y2="256"
+                    x1={(i * 60 / 1440) * 812} y1="0"
+                    x2={(i * 60 / 1440) * 812} y2="256"
                     stroke="#1f1f1f"
                     strokeWidth="1"
                   />
@@ -200,18 +229,18 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
                     key={`${activeTab}-${zoom}-${selectedDate.getTime()}`}
                     d={chartPath}
                     stroke="#FDD34D"
-                    strokeWidth="3.09"
+                    strokeWidth="2"
                     fill="none"
+                    vectorEffect="non-scaling-stroke"
                     style={{
-                      strokeDasharray: 2000,
+                      strokeDasharray: "none",
                       strokeDashoffset: 0,
-                      animation: "drawLine 0.7s ease-out",
                     }}
                   />
                 )}
 
-                {chartData[23] > 0 && (
-                  <rect x="804" y={256 - (chartData[23]/(isTemp?50:100))*256 - 5} width="8" height="10" fill="#FDD34D" />
+                {chartData[chartData.length - 1] > 0 && (
+                  <rect x="804" y={256 - (chartData[chartData.length - 1]/(isTemp?50:100))*256 - 5} width="8" height="10" fill="#FDD34D" />
                 )}
               </g>
             </svg>
@@ -222,14 +251,14 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
                   key={label}
                   className="absolute font-jakarta font-bold uppercase whitespace-nowrap"
                   style={{
-                    left: `${(i / 23) * 100}%`,
-                    transform: "translateX(-50%)",
+                    left: `${(i * 60 / 1440) * 100}%`,
+                    transform: i === 0 ? "none" : i === 23 ? "translateX(-50%)" : "translateX(-50%)",
                     color: "#ADAAAA",
-                    fontSize: zoom ? "11px" : "8px",
+                    fontSize: zoom ? "11px" : "10px",
                     top: 0,
                   }}
                 >
-                  {zoom ? label : `${parseInt(label)}h`}
+                  {label}
                 </span>
               ))}
             </div>
