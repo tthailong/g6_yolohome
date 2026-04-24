@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import LightTopNav from "@/components/dashboard/LightTopNav";
+import { WebSocketClient } from "@/lib/api/socket";
+import { deviceService } from "@/lib/api/devices";
 
 /* ── Icons ───────────────────────────────────────────────────────── */
 const BulbIcon = () => (
@@ -26,9 +28,34 @@ const SunLargeIcon = () => (
 /* ── Components ──────────────────────────────────────────────────── */
 
 export default function SmartLightPage() {
-  const [isOn, setIsOn] = useState(true);
+  const [isOn, setIsOn] = useState(false);
   const [brightness, setBrightness] = useState(85);
   const [showRightPanel, setShowRightPanel] = useState(true);
+
+  useEffect(() => {
+    const ws = new WebSocketClient(1, (message) => {
+      if (message.type === "SENSOR_UPDATE" && message.feed_name === "dadn.led-state") {
+        setIsOn(message.value === "1");
+      }
+    });
+    ws.connect();
+    return () => ws.disconnect();
+  }, []);
+
+  const handleToggle = async () => {
+    const nextState = !isOn;
+    setIsOn(nextState);
+    try {
+      await deviceService.control({
+        home_id: 1,
+        feed_name: "dadn.led-state",
+        value: nextState ? "1" : "0"
+      });
+    } catch (error) {
+      console.error("Failed to control LED:", error);
+      setIsOn(!nextState);
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-[#0E0E0E] text-white font-sans overflow-hidden">
@@ -71,7 +98,7 @@ export default function SmartLightPage() {
             </div>
 
             {/* Central Graphic */}
-            <div className="relative w-[340px] h-[340px] flex items-center justify-center mb-12 cursor-pointer transition-transform hover:scale-105 active:scale-95" onClick={() => setIsOn(!isOn)}>
+            <div className="relative w-[340px] h-[340px] flex items-center justify-center mb-12 cursor-pointer transition-transform hover:scale-105 active:scale-95" onClick={handleToggle}>
               
               {/* Outer faint rings */}
               <div

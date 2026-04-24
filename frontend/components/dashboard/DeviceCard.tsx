@@ -26,11 +26,12 @@ export interface DeviceCardData {
 
 interface DeviceCardProps {
   device: DeviceCardData;
+  onToggle?: (nextState: boolean) => void;
 }
 
-export default function DeviceCard({ device }: DeviceCardProps) {
+export default function DeviceCard({ device, onToggle }: DeviceCardProps) {
   const router = useRouter();
-  const [isOn, setIsOn] = useState(device.isActive ?? device.status === "on");
+  const isOn = device.isActive ?? device.status === "on";
 
   const isYellow = isOn && !device.isMood;
   const isMood = device.isMood;
@@ -47,8 +48,8 @@ export default function DeviceCard({ device }: DeviceCardProps) {
   const handleCardClick = () => {
     if (device.href) {
       router.push(device.href);
-    } else if (!device.isMood) {
-      setIsOn((v) => !v);
+    } else if (!device.isMood && onToggle) {
+      onToggle(!isOn);
     }
   };
 
@@ -97,7 +98,7 @@ export default function DeviceCard({ device }: DeviceCardProps) {
             }`}
             onClick={(e) => {
               e.stopPropagation();
-              setIsOn((v) => !v);
+              onToggle?.(!isOn);
             }}
             aria-label="toggle"
           >
