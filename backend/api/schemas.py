@@ -78,3 +78,8 @@ class Home(HomeBase):
     created_at: datetime
     devices: List[Device] = []
     model_config = ConfigDict(from_attributes=True)
+
+class DeviceControl(BaseModel):
+    home_id: int
+    feed_name: str
+    value: str

@@ -58,3 +58,20 @@ def delete_device(db: db_dependency, user: user_dependency, device_id: int):
     db.delete(db_device)
     db.commit()
     return {"message": "Device deleted successfully"}
+
+@router.post('/control')
+def control_device(db: db_dependency, user: user_dependency, command: schemas.DeviceControl):
+    from mqtt_manager import active_mqtt_clients, ensure_mqtt_for_home
+    
+    # 1. Ensure MQTT client is active for this home
+    client = ensure_mqtt_for_home(command.home_id, db)
+    if not client:
+        raise HTTPException(status_code=500, detail="Could not initialize MQTT connection")
+    
+    # 2. Publish the command
+    try:
+        client.publish(command.feed_name, command.value)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"MQTT Publish failed: {str(e)}")
+    
+    return {"status": "success", "feed": command.feed_name, "value": command.value}

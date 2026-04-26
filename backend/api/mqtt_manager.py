@@ -61,6 +61,11 @@ class AdafruitMQTTClient:
         self.client.loop_stop()
         self.client.disconnect()
 
+    def publish(self, feed_key: str, value: str):
+        topic = f"{self.username}/feeds/{feed_key}"
+        self.client.publish(topic, value)
+        print(f"DEBUG: Published to {topic}: {value}")
+
 # Registry to keep track of active MQTT clients
 active_mqtt_clients = {}
 

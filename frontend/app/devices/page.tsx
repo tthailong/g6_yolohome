@@ -1,8 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import DeviceCard, { AddDeviceCard } from "@/components/dashboard/DeviceCard";
 import type { DeviceCardData } from "@/components/dashboard/DeviceCard";
+import { WebSocketClient } from "@/lib/api/socket";
+import { deviceService } from "@/lib/api/devices";
 
 /* ── Icons ───────────────────────────────────────────────── */
 const LightIcon = () => (
@@ -54,7 +57,7 @@ const BlindsIcon = () => (
 );
 
 /* ── Room data ───────────────────────────────────────────── */
-const rooms: { name: string; devices: DeviceCardData[] }[] = [
+const INITIAL_ROOMS: { name: string; devices: (DeviceCardData & { feedName?: string; additionalFeeds?: string[] })[] }[] = [
   {
     name: "Living Room",
     devices: [
@@ -62,8 +65,9 @@ const rooms: { name: string; devices: DeviceCardData[] }[] = [
         id: "d1",
         name: "Main Chandelier",
         subtitle: "80% intensity",
-        status: "on",
-        isActive: true,
+        status: "off",
+        isActive: false,
+        feedName: "dadn.led-state",
         icon: <LightIcon />,
         href: "/devices/lamp",
       },
@@ -93,9 +97,11 @@ const rooms: { name: string; devices: DeviceCardData[] }[] = [
       {
         id: "d4",
         name: "Smart Temperature & Humidity Monitor",
-        subtitle: "TEMP: 24°C  HUM: 67%",
+        subtitle: "TEMP: --°C  HUM: --%",
         status: "on",
         isActive: true,
+        feedName: "dadn.dht20-temperature",
+        additionalFeeds: ["dadn.dht20-humidity"],
         icon: <TempIcon />,
       },
       {
@@ -192,8 +198,70 @@ function DevicesTopNav() {
 
 /* ── Page ────────────────────────────────────────────────── */
 export default function DevicesPage() {
-  const connected = rooms.reduce((a, r) => a + r.devices.filter(d => d.status !== "off").length, 0);
-  const offline = rooms.reduce((a, r) => a + r.devices.filter(d => d.status === "off").length, 0);
+  const [roomData, setRoomData] = useState(INITIAL_ROOMS);
+
+  useEffect(() => {
+    const ws = new WebSocketClient(1, (message) => {
+      if (message.type === "SENSOR_UPDATE") {
+        setRoomData(prev => prev.map(room => ({
+          ...room,
+          devices: room.devices.map(device => {
+            const isPrimary = device.feedName === message.feed_name;
+            const isAdditional = device.additionalFeeds?.includes(message.feed_name);
+
+            if (isPrimary || isAdditional) {
+              if (message.feed_name === "dadn.led-state") {
+                const isActivated = message.value === "1";
+                return { ...device, isActive: isActivated, status: isActivated ? "on" : "off" };
+              }
+              
+              if (message.feed_name.includes("temperature") || message.feed_name.includes("humidity")) {
+                const currentTemp = message.feed_name.includes("temperature") ? message.value : (device.subtitle?.match(/TEMP: ([\d.]+)/)?.[1] || "--");
+                const currentHumid = message.feed_name.includes("humidity") ? message.value : (device.subtitle?.match(/HUM: ([\d.]+)/)?.[1] || "--");
+                return { ...device, subtitle: `TEMP: ${currentTemp}°C  HUM: ${currentHumid}%` };
+              }
+            }
+            return device;
+          })
+        })));
+      }
+    });
+    ws.connect();
+    return () => ws.disconnect();
+  }, []);
+
+  const handleDeviceToggle = async (deviceId: string, nextState: boolean) => {
+    let targetFeed = "";
+    roomData.forEach(r => r.devices.forEach(d => {
+      if (d.id === deviceId) targetFeed = d.feedName || "";
+    }));
+
+    // Local optimistic update
+    setRoomData(prev => prev.map(room => ({
+      ...room,
+      devices: room.devices.map(d => d.id === deviceId ? { ...d, isActive: nextState, status: nextState ? "on" : "off" } : d)
+    })));
+
+    if (targetFeed) {
+      try {
+        await deviceService.control({
+          home_id: 1,
+          feed_name: targetFeed,
+          value: nextState ? "1" : "0"
+        });
+      } catch (error) {
+        console.error("Control failed:", error);
+        // Revert local state on error
+        setRoomData(prev => prev.map(room => ({
+          ...room,
+          devices: room.devices.map(d => d.id === deviceId ? { ...d, isActive: !nextState, status: !nextState ? "on" : "off" } : d)
+        })));
+      }
+    }
+  };
+
+  const connected = roomData.reduce((a, r) => a + r.devices.filter(d => d.status !== "off").length, 0);
+  const offline = roomData.reduce((a, r) => a + r.devices.filter(d => d.status === "off").length, 0);
 
   return (
     <div className="flex min-h-screen bg-[#0E0E0E] text-white font-sans overflow-hidden">
@@ -240,14 +308,12 @@ export default function DevicesPage() {
 
           {/* Rooms */}
           <div className="space-y-10">
-            {rooms.map((room) => (
+            {roomData.map((room) => (
               <section key={room.name}>
-                {/* Room label */}
                 <h2 className="font-manrope font-bold text-base text-white mb-4">
                   {room.name}
                 </h2>
 
-                {/* Device grid — asymmetric */}
                 <div
                   className="grid gap-4"
                   style={{
@@ -255,7 +321,11 @@ export default function DevicesPage() {
                   }}
                 >
                   {room.devices.map((device) => (
-                    <DeviceCard key={device.id} device={device} />
+                    <DeviceCard 
+                      key={device.id} 
+                      device={device} 
+                      onToggle={(next) => handleDeviceToggle(device.id, next)} 
+                    />
                   ))}
                   <AddDeviceCard />
                 </div>
@@ -263,7 +333,7 @@ export default function DevicesPage() {
             ))}
           </div>
 
-          {/* Floating add button */}
+          {/* ... (Floating add button stays same) ... */}
           <button
             className="fixed bottom-8 right-8 w-12 h-12 rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-110 active:scale-95 z-20"
             style={{
