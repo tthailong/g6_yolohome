@@ -85,6 +85,7 @@ async def get_dashboard_summary(
                 "sensor_id": sensor.id,
                 "sensor_type": sensor.sensor_type,
                 "device_name": sensor.device.name,
+                "feed_name": sensor.feed_name,
                 "last_value": last_val.get('value'),
                 "updated_at": last_val.get('created_at')
             })
@@ -93,6 +94,7 @@ async def get_dashboard_summary(
                 "sensor_id": sensor.id,
                 "sensor_type": sensor.sensor_type,
                 "device_name": sensor.device.name,
+                "feed_name": sensor.feed_name,
                 "last_value": None,
                 "error": "Could not fetch data"
             })
