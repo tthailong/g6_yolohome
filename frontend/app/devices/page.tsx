@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/dashboard/Sidebar";
 import DeviceCard, { AddDeviceCard } from "@/components/dashboard/DeviceCard";
 import type { DeviceCardData } from "@/components/dashboard/DeviceCard";
@@ -244,6 +245,7 @@ function DevicesTopNav({
 
 
 export default function DevicesPage() {
+  const router = useRouter();
   const { deviceStates, updateDeviceState } = useDevices();
   const [showNotifications, setShowNotifications] = useState(true);
   const lastActionTime = useRef(0);
@@ -259,7 +261,7 @@ export default function DevicesPage() {
 
       if (device.feedName === "dadn.led-state") {
         const isActivated = globalValue === "1";
-        const brightnessValue = deviceStates["dadn.led-state"] || "85";
+        const brightnessValue = deviceStates["dadn.led-sate"] || "85";
         updatedDevice.isActive = isActivated;
         updatedDevice.status = isActivated ? "on" : "off";
         if (isActivated) {
@@ -371,7 +373,7 @@ export default function DevicesPage() {
                           onToggle={(next) => handleDeviceToggle(device.id, next)} 
                         />
                       ))}
-                      <AddDeviceCard />
+                      <AddDeviceCard onClick={() => router.push("/devices/add")} />
                     </div>
                   </section>
                 ));
