@@ -30,23 +30,12 @@ export default function SmartDoorPage() {
         <LightTopNav 
           showNotifications={showRightPanel}
           onToggleNotifications={() => setShowRightPanel((v) => !v)}
+          title="Door"
         />
 
         <main className="flex-1 mt-14 overflow-hidden flex flex-row">
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col p-8 overflow-y-auto transition-all duration-300">
-            
-            {/* Breadcrumb */}
-            <div className="flex items-center text-[#ADAAAA] text-sm mb-8">
-              <Link href="/devices" className="flex items-center hover:text-white transition-colors">
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Devices
-              </Link>
-              <span className="mx-2">/</span>
-              <span>Bedroom</span>
-              <span className="mx-2">/</span>
-              <span className="text-white font-medium">Front door</span>
-            </div>
 
             {/* Camera Feed Section */}
             <div className="bg-[#121212] border border-[#262626] rounded-2xl overflow-hidden mb-8 relative">

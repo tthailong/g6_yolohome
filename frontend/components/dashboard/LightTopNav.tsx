@@ -5,9 +5,11 @@ import Link from "next/link";
 export default function LightTopNav({
   showNotifications = true,
   onToggleNotifications,
+  title = "Ceiling Glow",
 }: {
   showNotifications?: boolean;
   onToggleNotifications?: () => void;
+  title?: string;
 }) {
   return (
     <header
@@ -31,7 +33,7 @@ export default function LightTopNav({
           <span className="text-[#ADAAAA] mx-1">/</span>
           <span className="text-white">Living Room</span>
           <span className="text-[#ADAAAA] mx-1">/</span>
-          <span style={{ color: "#FDD34D" }}>Ceiling Glow</span>
+          <span style={{ color: "#FDD34D" }}>{title}</span>
         </div>
       </div>
 

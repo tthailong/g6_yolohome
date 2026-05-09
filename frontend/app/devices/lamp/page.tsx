@@ -30,8 +30,9 @@ export default function SmartLightPage() {
   const { deviceStates, updateDeviceState } = useDevices();
   const [showRightPanel, setShowRightPanel] = useState(true);
 
-  const isOn = deviceStates["dadn.led-state"] == "1";
-  const brightness = deviceStates["dadn.led-sate"] || "85"; 
+  const isOn = deviceStates["dadn.led-state"] === "1";
+  const rawBrightness = deviceStates["dadn.led-sate"] || "0.85";
+  const brightness = Math.round(parseFloat(rawBrightness) * 100);
 
   const brightnessTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastActionTime = useRef(0);
@@ -56,9 +57,8 @@ export default function SmartLightPage() {
     const nextState = !isOn;
     lastActionTime.current = Date.now();
     try {
-      // If we are turning it on from an 'off' state (0), maybe default to 85%
-      const valueToSend = nextState ? brightness > 0 ? brightness : "85" : "0";
-      await updateDeviceState("dadn.led-sate", valueToSend);
+      const valueToSend = nextState ? "1" : "0";
+      await updateDeviceState("dadn.led-state", valueToSend);
     } catch (error) {
       console.error("Failed to control LED state:", error);
     }
@@ -72,6 +72,7 @@ export default function SmartLightPage() {
         <LightTopNav 
           showNotifications={false}
           onToggleNotifications={() => {}}
+          title="Main Chandelier"
         />
 
         <main className="flex-1 mt-14 overflow-hidden flex flex-row relative">
