@@ -2,8 +2,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-# Chuỗi kết nối tới MySQL thật sự
-URL_DATABASE = "mysql+pymysql://root:hailong2005@localhost:3306/g6yolohome"
+URL_DATABASE = os.getenv("DATABASE_URL")
 
 # Tạo engine để kết nối
 engine = create_engine(URL_DATABASE)
