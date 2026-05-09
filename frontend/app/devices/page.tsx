@@ -58,6 +58,20 @@ const BlindsIcon = () => (
   </svg>
 );
 
+const LightIcon = () => (
+  <svg width="18" height="20" viewBox="0 0 18 20" fill="none">
+    <path d="M9 20C7.9 20 7 19.1 7 18H11C11 19.1 10.1 20 9 20ZM4 13C4 10.24 6.24 8 9 8C11.76 8 14 10.24 14 13C14 14.72 13.1 16.24 11.76 17H6.24C4.9 16.24 4 14.72 4 13ZM9 0C5.13 0 2 3.13 2 7C2 9.38 3.19 11.48 5 12.72V17C5 17.55 5.45 18 6 18H12C12.55 18 13 17.55 13 17V12.72C14.81 11.48 16 9.38 16 7C16 3.13 12.87 0 9 0Z" fill="currentColor"/>
+  </svg>
+);
+
+const FanIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <path d="M12 12C12.5523 12 13 11.5523 13 11C13 10.4477 12.5523 10 12 10C11.4477 10 11 10.4477 11 11C11 11.5523 11.4477 12 12 12Z" fill="currentColor"/>
+    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM17 11C17 13.76 14.76 16 12 16C10.54 16 9.24 15.38 8.32 14.38L9.74 12.96C10.3 13.6 11.1 14 12 14C13.66 14 15 12.66 15 11C15 10.1 14.6 9.3 13.96 8.74L15.38 7.32C16.38 8.24 17 9.54 17 11ZM12 6C13.46 6 14.76 6.62 15.68 7.62L14.26 9.04C13.7 8.4 12.9 8 12 8C10.34 8 9 9.34 9 11C9 11.9 9.4 12.7 10.04 13.26L8.62 14.68C7.62 13.76 7 12.46 7 11C7 8.24 9.24 6 12 6Z" fill="currentColor"/>
+  </svg>
+);
+
+
 /* ── Room data ───────────────────────────────────────────── */
 const INITIAL_ROOMS: { name: string; devices: (DeviceCardData & { feedName?: string; additionalFeeds?: string[] })[] }[] = [
   {
@@ -245,7 +259,7 @@ export default function DevicesPage() {
 
       if (device.feedName === "dadn.led-state") {
         const isActivated = globalValue === "1";
-        const brightnessValue = deviceStates["dadn.led-sate"] || "85";
+        const brightnessValue = deviceStates["dadn.led-state"] || "85";
         updatedDevice.isActive = isActivated;
         updatedDevice.status = isActivated ? "on" : "off";
         if (isActivated) {
