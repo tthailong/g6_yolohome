@@ -72,6 +72,7 @@ export default function SmartLightPage() {
         <LightTopNav 
           showNotifications={false}
           onToggleNotifications={() => {}}
+          title="Main Chandelier"
         />
 
         <main className="flex-1 mt-14 overflow-hidden flex flex-row relative">
