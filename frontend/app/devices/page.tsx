@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
-import LightTopNav from "@/components/dashboard/LightTopNav";
+import DeviceCard, { AddDeviceCard } from "@/components/dashboard/DeviceCard";
+import type { DeviceCardData } from "@/components/dashboard/DeviceCard";
+import RecentActivity from "@/components/dashboard/RecentActivity";
 import { WebSocketClient } from "@/lib/api/socket";
 import { deviceService } from "@/lib/api/devices";
-import Link from "next/link";
-import { ChevronLeft, Search } from "lucide-react";
+import { useDevices } from "@/app/context/DeviceContext";
 
 /* ── Icons ───────────────────────────────────────────────────────── */
 const BulbIcon = () => (
@@ -27,304 +28,368 @@ const SunLargeIcon = () => (
   </svg>
 );
 
-/* ── Components ──────────────────────────────────────────────────── */
+const TempIcon = () => (
+  <svg width="16" height="18" viewBox="0 0 16 18" fill="none">
+    <path d="M8 18C6.61667 18 5.4375 17.5125 4.4625 16.5375C3.4875 15.5625 3 14.3833 3 13C3 12.2333 3.17083 11.5208 3.5125 10.8625C3.85417 10.2042 4.33333 9.66667 4.95 9.25V3C4.95 2.16667 5.24583 1.45833 5.8375 0.875C6.42917 0.291667 7.13333 0 7.95 0C8.78333 0 9.49167 0.291667 10.075 0.875C10.6583 1.45833 10.95 2.16667 10.95 3V9.25C11.5667 9.66667 12.0458 10.2042 12.3875 10.8625C12.7292 11.5208 12.9 12.2333 12.9 13C12.9 14.3833 12.4125 15.5625 11.4375 16.5375C10.4625 17.5125 9.28333 18 7.9 18H8Z" fill="currentColor"/>
+  </svg>
+);
 
-export default function SmartLightPage() {
-  const [isOn, setIsOn] = useState(false);
-  const [brightness, setBrightness] = useState(85);
-  const [showRightPanel, setShowRightPanel] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+const CoffeeIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+    <path d="M2 22V20H22V22H2ZM4 19C3.45 19 2.97917 18.8042 2.5875 18.4125C2.19583 18.0208 2 17.55 2 17V5H20V8H21C21.5667 8 22.0417 8.20417 22.425 8.6125C22.8083 9.02083 23 9.51667 23 10.1V12.9C23 13.4833 22.8083 13.9792 22.425 14.3875C22.0417 14.7958 21.5667 15 21 15H20V17C20 17.55 19.8042 18.0208 19.4125 18.4125C19.0208 18.8042 18.55 19 18 19H4ZM4 13H18V7H4V13ZM20 13H21V10H20V13Z" fill="currentColor"/>
+  </svg>
+);
 
-  useEffect(() => {
-    const ws = new WebSocketClient(1, (message) => {
-      if (message.type === "SENSOR_UPDATE" && message.feed_name === "dadn.led-state") {
-        setIsOn(message.value === "1");
-        if(message.value === "1" && brightness === 0) setBrightness(85);
+const LockIcon = () => (
+  <svg width="16" height="18" viewBox="0 0 16 20" fill="none">
+    <path d="M2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V8C0 7.45 0.195833 6.97917 0.5875 6.5875C0.979167 6.19583 1.45 6 2 6H3V4C3 2.9 3.39167 1.95833 4.175 1.175C4.95833 0.391667 5.9 0 7 0H9C10.1 0 11.0417 0.391667 11.825 1.175C12.6083 1.95833 13 2.9 13 4V6H14C14.55 6 15.0208 6.19583 15.4125 6.5875C15.8042 6.97917 16 7.45 16 8V18C16 18.55 15.8042 19.0208 15.4125 19.4125C15.0208 19.8042 14.55 20 14 20H2ZM8 15C8.55 15 9.02083 14.8042 9.4125 14.4125C9.80417 14.0208 10 13.55 10 13C10 12.45 9.80417 11.9792 9.4125 11.5875C9.02083 11.1958 8.55 11 8 11C7.45 11 6.97917 11.1958 6.5875 11.5875C6.19583 11.9792 6 12.45 6 13C6 13.55 6.19583 14.0208 6.5875 14.4125C6.97917 14.8042 7.45 15 8 15ZM5 6H11V4C11 3.45 10.8042 2.97917 10.4125 2.5875C10.0208 2.19583 9.55 2 9 2H7C6.45 2 5.97917 2.19583 5.5875 2.5875C5.19583 2.97917 5 3.45 5 4V6Z" fill="currentColor"/>
+  </svg>
+);
+
+const AirIcon = () => (
+  <svg width="18" height="14" viewBox="0 0 24 18" fill="none">
+    <path d="M0 18V16H14C14.8333 16 15.5417 15.7083 16.125 15.125C16.7083 14.5417 17 13.8333 17 13C17 12.1667 16.7083 11.4583 16.125 10.875C15.5417 10.2917 14.8333 10 14 10H10V8H14C15.3833 8 16.5625 8.4875 17.5375 9.4625C18.5125 10.4375 19 11.6167 19 13C19 14.3833 18.5125 15.5625 17.5375 16.5375C16.5625 17.5125 15.3833 18 14 18H0ZM0 11V9H9C9.56667 9 10.0417 8.80417 10.425 8.4125C10.8083 8.02083 11 7.55 11 7C11 6.45 10.8083 5.97917 10.425 5.5875C10.0417 5.19583 9.56667 5 9 5H0V3H9C10.1 3 11.0417 3.39167 11.825 4.175C12.6083 4.95833 13 5.9 13 7C13 8.1 12.6083 9.04167 11.825 9.825C11.0417 10.6083 10.1 11 9 11H0ZM0 4V2H19C20.1 2 21.0417 1.60833 21.825 0.825C22.6083 0.0416667 23 -0.9 23 -2C23 -3.1 22.6083 -4.04167 21.825 -4.825C21.0417 -5.60833 20.1 -6 19 -6H16V-8H19C20.6667 -8 22.0833 -7.41667 23.25 -6.25C24.4167 -5.08333 25 -3.66667 25 -2C25 -0.333333 24.4167 1.08333 23.25 2.25C22.0833 3.41667 20.6667 4 19 4H0Z" fill="currentColor"/>
+  </svg>
+);
+
+const BlindsIcon = () => (
+  <svg width="18" height="16" viewBox="0 0 24 20" fill="none">
+    <path d="M0 2V0H24V2H0ZM4 9V7H20V9H4ZM0 5V3H24V5H0ZM4 13V11H20V13H4ZM0 17V15H24V17H0ZM4 20V18H20V20H4Z" fill="currentColor"/>
+  </svg>
+);
+
+const LightIcon = () => (
+  <svg width="18" height="20" viewBox="0 0 18 20" fill="none">
+    <path d="M9 20C7.9 20 7 19.1 7 18H11C11 19.1 10.1 20 9 20ZM4 13C4 10.24 6.24 8 9 8C11.76 8 14 10.24 14 13C14 14.72 13.1 16.24 11.76 17H6.24C4.9 16.24 4 14.72 4 13ZM9 0C5.13 0 2 3.13 2 7C2 9.38 3.19 11.48 5 12.72V17C5 17.55 5.45 18 6 18H12C12.55 18 13 17.55 13 17V12.72C14.81 11.48 16 9.38 16 7C16 3.13 12.87 0 9 0Z" fill="currentColor"/>
+  </svg>
+);
+
+const FanIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <path d="M12 12C12.5523 12 13 11.5523 13 11C13 10.4477 12.5523 10 12 10C11.4477 10 11 10.4477 11 11C11 11.5523 11.4477 12 12 12Z" fill="currentColor"/>
+    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM17 11C17 13.76 14.76 16 12 16C10.54 16 9.24 15.38 8.32 14.38L9.74 12.96C10.3 13.6 11.1 14 12 14C13.66 14 15 12.66 15 11C15 10.1 14.6 9.3 13.96 8.74L15.38 7.32C16.38 8.24 17 9.54 17 11ZM12 6C13.46 6 14.76 6.62 15.68 7.62L14.26 9.04C13.7 8.4 12.9 8 12 8C10.34 8 9 9.34 9 11C9 11.9 9.4 12.7 10.04 13.26L8.62 14.68C7.62 13.76 7 12.46 7 11C7 8.24 9.24 6 12 6Z" fill="currentColor"/>
+  </svg>
+);
+
+
+/* ── Room data ───────────────────────────────────────────── */
+const INITIAL_ROOMS: { name: string; devices: (DeviceCardData & { feedName?: string; additionalFeeds?: string[] })[] }[] = [
+  {
+    name: "Living Room",
+    devices: [
+      {
+        id: "d1",
+        name: "Main Chandelier",
+        subtitle: "80% intensity",
+        status: "off",
+        isActive: false,
+        feedName: "dadn.led-state",
+        icon: <LightIcon />,
+        href: "/devices/lamp",
+      },
+      {
+        id: "d2",
+        name: "Ceiling Fan",
+        subtitle: "Standby",
+        status: "standby",
+        icon: <FanIcon />,
+      },
+      {
+        id: "d3",
+        name: "Living Room Door",
+        subtitle: "Secured",
+        status: "locked",
+        badge: "LOCKED",
+        badgeColor: "#D53D18",
+        noToggle: true,
+        icon: <LockIcon />,
+        href: "/devices/door",
+      },
+    ],
+  },
+  {
+    name: "Kitchen",
+    devices: [
+      {
+        id: "d4",
+        name: "Smart Temperature & Humidity Monitor",
+        subtitle: "TEMP: --°C  HUM: --%",
+        status: "on",
+        isActive: true,
+        feedName: "dadn.dht20-temperature",
+        additionalFeeds: ["dadn.dht20-humidity"],
+        icon: <TempIcon />,
+      },
+      {
+        id: "d5",
+        name: "Espresso Machine",
+        subtitle: "Ready in 2 min",
+        status: "standby",
+        icon: <CoffeeIcon />,
+      },
+    ],
+  },
+  {
+    name: "Bedroom & Security",
+    devices: [
+      {
+        id: "d6",
+        name: "Front Door",
+        subtitle: "Secured at 10:45 PM",
+        status: "locked",
+        badge: "LOCKED",
+        badgeColor: "#D53D18",
+        noToggle: true,
+        icon: <LockIcon />,
+        href: "/devices/door",
+      },
+      {
+        id: "d7",
+        name: "Air Purifier",
+        subtitle: "Sleep Mode",
+        status: "standby",
+        icon: <AirIcon />,
+      },
+      {
+        id: "d8",
+        name: "Blackout Blinds",
+        subtitle: "Closed",
+        status: "off",
+        icon: <BlindsIcon />,
+      },
+    ],
+  },
+];
+
+/* ── Top Nav for Devices ─────────────────────────────────── */
+function DevicesTopNav({ 
+  showNotifications, 
+  onToggleNotifications 
+}: { 
+  showNotifications: boolean; 
+  onToggleNotifications: () => void;
+}) {
+  return (
+    <header
+      className="fixed top-0 right-0 z-30 flex items-center justify-between h-16 px-6 md:px-8"
+      style={{
+        left: "80px",
+        background: "#0E0E0E",
+        backdropFilter: "blur(6px)",
+        borderBottom: "1px solid #484847",
+      }}
+    >
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2">
+        <svg width="8" height="12" viewBox="0 0 8 12" fill="none">
+          <path d="M7.41 10.59L2.83 6L7.41 1.41L6 0L0 6L6 12L7.41 10.59Z" fill="#ADAAAA"/>
+        </svg>
+        <span className="font-jakarta text-sm font-semibold text-white tracking-wide">
+          Devices
+        </span>
+      </div>
+
+      {/* Right: Search + Bell + Avatar (Matching Dashboard) */}
+      <div className="flex items-center gap-4 md:gap-6">
+        {/* Search */}
+        <div
+          className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg w-48 lg:w-64"
+          style={{ background: "#262626", border: "1px solid #484847" }}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M12.45 13.5L7.725 8.775C7.35 9.075 6.91875 9.3125 6.43125 9.4875C5.94375 9.6625 5.425 9.75 4.875 9.75C3.5125 9.75 2.35938 9.27813 1.41562 8.33438C0.471875 7.39063 0 6.2375 0 4.875C0 3.5125 0.471875 2.35938 1.41562 1.41562C2.35938 0.471875 3.5125 0 4.875 0C6.2375 0 7.39063 0.471875 8.33438 1.41562C9.27813 2.35938 9.75 3.5125 9.75 4.875C9.75 5.425 9.6625 5.94375 9.4875 6.43125C9.3125 6.91875 9.075 7.35 8.775 7.725L13.5 12.45L12.45 13.5ZM4.875 8.25C5.8125 8.25 6.60938 7.92188 7.26562 7.26562C7.92188 6.60938 8.25 5.8125 8.25 4.875C8.25 3.9375 7.92188 3.14062 7.26562 2.48438C6.60938 1.82812 5.8125 1.5 4.875 1.5C3.9375 1.5 3.14062 1.82812 2.48438 2.48438C1.82812 3.14062 1.5 3.9375 1.5 4.875C1.5 5.8125 1.82812 6.60938 2.48438 7.26562C3.14062 7.92188 3.9375 8.25 4.875 8.25Z" fill="#ADAAAA"/>
+          </svg>
+          <span className="font-jakarta font-bold text-[10px] tracking-widest uppercase" style={{ color: "#ADAAAA" }}>
+            SEARCH...
+          </span>
+        </div>
+
+        {/* Bell — toggles notification panel */}
+        <button
+          onClick={onToggleNotifications}
+          className="relative p-1 rounded-lg transition-all duration-200 hover:bg-[#1A1A1A]"
+          aria-label="Toggle notifications"
+        >
+          <svg width="16" height="20" viewBox="0 0 16 20" fill="none"
+            style={{ filter: showNotifications ? "drop-shadow(0 0 6px #FDD34D)" : "none" }}
+          >
+            <path d="M0 17V15H2V8C2 6.61667 2.41667 5.3875 3.25 4.3125C4.08333 3.2375 5.16667 2.53333 6.5 2.2V1.5C6.5 1.08333 6.64583 0.729167 6.9375 0.4375C7.22917 0.145833 7.58333 0 8 0C8.41667 0 8.77083 0.145833 9.0625 0.4375C9.35417 0.729167 9.5 1.08333 9.5 1.5V2.2C10.8333 2.53333 11.9167 3.2375 12.75 4.3125C13.5833 5.3875 14 6.61667 14 8V15H16V17H0ZM8 20C7.45 20 6.97917 19.8042 6.5875 19.4125C6.19583 19.0208 6 18.55 6 18H10C10 18.55 9.80417 19.0208 9.4125 19.4125C9.02083 19.8042 8.55 20 8 20ZM4 15H12V8C12 6.9 11.6083 5.95833 10.825 5.175C10.0417 4.39167 9.1 4 8 4C6.9 4 5.95833 4.39167 5.175 5.175C4.39167 5.95833 4 6.9 4 8V15Z"
+              fill={showNotifications ? "#FDD34D" : "#ADAAAA"}
+            />
+          </svg>
+          {/* Active dot */}
+          {showNotifications && (
+            <span
+              className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full"
+              style={{ background: "#FDD34D" }}
+            />
+          )}
+        </button>
+
+        {/* Avatar */}
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden cursor-pointer"
+          style={{ border: "1px solid #484847", background: "#262626" }}
+        >
+          <img
+            src="https://api.builder.io/api/v1/image/assets/TEMP/b37aa6d1c6cbc969bfe2b07a8b3ddc5dc6d58170?width=60"
+            alt="User avatar"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </div>
+    </header>
+  );
+}
+
+
+export default function DevicesPage() {
+  const { deviceStates, updateDeviceState } = useDevices();
+  const [showNotifications, setShowNotifications] = useState(true);
+  const lastActionTime = useRef(0);
+
+  // Map global context state to our room data structure
+  const roomData = INITIAL_ROOMS.map(room => ({
+    ...room,
+    devices: room.devices.map(device => {
+      const globalValue = deviceStates[device.feedName || ""];
+      const additionalValue1 = device.additionalFeeds?.[0] ? deviceStates[device.additionalFeeds[0]] : null;
+      
+      let updatedDevice = { ...device };
+
+      if (device.feedName === "dadn.led-state") {
+        const isActivated = globalValue === "1";
+        const brightnessValue = deviceStates["dadn.led-state"] || "85";
+        updatedDevice.isActive = isActivated;
+        updatedDevice.status = isActivated ? "on" : "off";
+        if (isActivated) {
+          updatedDevice.subtitle = `${brightnessValue}% intensity`;
+        } else {
+          updatedDevice.subtitle = "Off";
+        }
       }
-    });
-    ws.connect();
-    return () => ws.disconnect();
-  }, [brightness]);
 
-  const handleToggle = async () => {
-    const nextState = !isOn;
-    setIsOn(nextState);
-    if (!nextState) setBrightness(0);
-    if (nextState && brightness === 0) setBrightness(85);
+      if (device.feedName?.includes("temperature")) {
+        const currentTemp = globalValue || "--";
+        const currentHumid = additionalValue1 || "--";
+        updatedDevice.subtitle = `TEMP: ${currentTemp}°C  HUM: ${currentHumid}%`;
+      }
 
-    try {
-      await deviceService.control({
-        home_id: 1,
-        feed_name: "dadn.led-state",
-        value: nextState ? "1" : "0"
-      });
-    } catch (error) {
-      console.error("Failed to control LED:", error);
-      setIsOn(!nextState);
-      if(nextState) setBrightness(0)
+      return updatedDevice;
+    })
+  }));
+
+  const handleDeviceToggle = async (deviceId: string, nextState: boolean) => {
+    lastActionTime.current = Date.now();
+    let targetFeed = "";
+    INITIAL_ROOMS.forEach(r => r.devices.forEach(d => {
+      if (d.id === deviceId) targetFeed = d.feedName || "";
+    }));
+
+    if (targetFeed) {
+      try {
+        const valueToSend = nextState ? "1" : "0";
+        await updateDeviceState(targetFeed, valueToSend);
+      } catch (error) {
+        console.error("Control failed:", error);
+      }
     }
   };
+  const connected = roomData.reduce((a, r) => a + r.devices.filter(d => d.status !== "off").length, 0);
+  const offline = roomData.reduce((a, r) => a + r.devices.filter(d => d.status === "off").length, 0);
 
   return (
     <div className="flex min-h-screen bg-[#0E0E0E] text-white font-sans overflow-hidden">
       <Sidebar />
 
-      <div className="flex flex-col flex-1 min-w-0 md:ml-20">
-        <LightTopNav 
-          showNotifications={false}
-          onToggleNotifications={() => {}}
+      <div className="flex flex-col flex-1 min-w-0 ml-20">
+        <DevicesTopNav 
+          showNotifications={showNotifications} 
+          onToggleNotifications={() => setShowNotifications(!showNotifications)}
         />
 
-        <main className="flex-1 mt-14 overflow-hidden flex flex-row relative">
-          {/* Sidebar Toggle Button */}
-          <button
-            onClick={() => setShowRightPanel(!showRightPanel)}
-            className="absolute top-1/2 -translate-y-1/2 right-0 z-20 w-8 h-12 flex items-center justify-center rounded-l-xl transition-all duration-300"
-            style={{ 
-              background: "#1A1A1A", 
-              border: "1px solid #262626", 
-              borderRight: "none",
-              marginRight: showRightPanel ? "340px" : "0px",
-              boxShadow: "-4px 0 12px rgba(0,0,0,0.5)"
-            }}
-          >
-            <svg 
-              width="18" height="18" viewBox="0 0 24 24" fill="none" 
-              className={`transition-transform duration-500 ${showRightPanel ? "rotate-180" : ""}`}
-            >
-              <path d="M15 18L9 12L15 6" stroke={showRightPanel ? "#FDD34D" : "#ADAAAA"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
+        <main className="flex flex-1 mt-16 overflow-hidden">
+          {/* Main Scrollable Content */}
+          <div className="flex-1 overflow-y-auto px-8 py-8 scrollbar-hide transition-all duration-300">
+            {/* Page Header */}
+            <div className="flex items-start justify-between mb-8">
+              <div>
+                <h1 className="font-manrope font-extrabold text-4xl text-white tracking-tight">
+                  My Devices
+                </h1>
+                <p className="font-jakarta text-sm mt-1" style={{ color: "#ADAAAA" }}>
+                  <span className="text-white font-semibold">{connected} Connected</span>
+                  {" • "}
+                  <span style={{ color: "#D53D18" }}>{offline} Offline</span>
+                </p>
+              </div>
 
-          {/* ── Left Column: Main Light Control ── */}
-          <div className="flex-1 overflow-y-auto px-8 py-8 md:py-12 flex flex-col items-center w-full transition-all duration-300 scrollbar-hide relative">
-            
-            {/* Breadcrumb - Absolute to match design */}
-            <div className="absolute top-8 left-8 flex items-center text-[#ADAAAA] text-sm z-10">
-              <Link href="/devices" className="flex items-center hover:text-white transition-colors">
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Devices
-              </Link>
-              <span className="mx-2">/</span>
-              <span>Living Room</span>
-              <span className="mx-2">/</span>
-              <span className="text-white font-medium">Ceiling Glow</span>
-            </div>
-
-            {/* Header */}
-            <div className="text-center mb-10 w-full relative mt-8 md:mt-0">
-              <h3 className="font-jakarta text-[10px] uppercase tracking-widest text-[#ADAAAA] mb-2">Device Status</h3>
-              <h1 className="font-manrope font-extrabold text-4xl text-white tracking-tight">Main Light</h1>
-            </div>
-
-            {/* Central Graphic */}
-            <div className="relative w-[340px] h-[340px] flex items-center justify-center mb-8 cursor-pointer transition-transform hover:scale-105 active:scale-95" onClick={handleToggle}>
-              
-              {/* Outer faint rings */}
+              {/* Air Quality pill */}
               <div
-                className="absolute inset-0 rounded-full transition-all duration-700"
-                style={{
-                  border: isOn ? "1px solid rgba(253,211,77,0.15)" : "1px solid rgba(255,255,255,0.05)",
-                  transform: isOn ? "scale(1.2)" : "scale(1)",
-                  opacity: isOn ? 1 : 0.5
-                }}
-              />
-              <div
-                className="absolute inset-0 rounded-full transition-all duration-700"
-                style={{
-                  border: isOn ? "1px solid rgba(253,211,77,0.25)" : "1px solid rgba(255,255,255,0.1)",
-                  transform: "scale(0.9)",
-                  background: isOn ? "radial-gradient(circle, rgba(253,211,77,0.1) 0%, transparent 70%)" : "transparent",
-                  boxShadow: isOn ? "0 0 60px 0 rgba(253,211,77,0.1)" : "none"
-                }}
-              />
-              
-              {/* Core Light Circle */}
-              <div
-                className="relative w-[180px] h-[180px] rounded-full flex items-center justify-center transition-all duration-500 z-10"
-                style={{
-                  background: isOn ? "linear-gradient(135deg, #FDD34D 0%, #E8AA00 100%)" : "#262626",
-                  boxShadow: isOn ? "0 0 80px 10px rgba(253,211,77,0.4), inset 0 0 20px rgba(255,255,255,0.5)" : "inset 0 2px 4px rgba(0,0,0,0.5)",
-                }}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl"
+                style={{ background: "#1A1A1A" }}
               >
-                <div style={{ color: isOn ? "#5C4900" : "#ADAAAA" }}>
-                  <BulbIcon />
+                <div className="text-right">
+                  <p className="font-jakarta text-[9px] uppercase tracking-widest text-[#ADAAAA]">
+                    Air Quality
+                  </p>
+                  <p className="font-manrope font-bold text-sm text-white">Excellent</p>
                 </div>
-              </div>
-            </div>
-
-            {/* Brightness Pill */}
-            <div className="px-5 py-2 rounded-2xl mb-12 border transition-all duration-300" style={{ background: "#1A1A1A", borderColor: isOn ? "rgba(253,211,77,0.3)" : "#484847" }}>
-              <span className="font-jakarta font-bold text-sm" style={{ color: isOn ? "#FDD34D" : "#ADAAAA" }}>
-                {isOn ? `${brightness}% Brightness` : "Off"}
-              </span>
-            </div>
-
-            {/* Slider */}
-            <div className="flex items-center gap-5 w-full max-w-[400px] mb-20 px-4">
-              <SunSmallIcon />
-              <div className="relative flex-1 h-1.5 rounded-full" style={{ background: "#484847" }}>
                 <div
-                  className="absolute top-0 left-0 h-full rounded-full transition-all duration-200"
-                  style={{ width: `${brightness}%`, background: isOn ? "#FDD34D" : "#888" }}
-                />
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={brightness}
-                  onChange={(e) => {
-                    const v = parseInt(e.target.value);
-                    setBrightness(v);
-                    if (v > 0 && !isOn) setIsOn(true);
-                    if (v === 0 && isOn) setIsOn(false);
-                  }}
-                  className="absolute inset-0 w-full opacity-0 cursor-pointer"
-                />
-                <div
-                  className="absolute top-1/2 -mt-2.5 w-5 h-5 bg-white rounded-full shadow-lg pointer-events-none transition-all duration-200"
-                  style={{ left: `calc(${brightness}% - 10px)` }}
-                />
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: "#ebffe7", boxShadow: "0 0 12px 0 rgba(235,255,231,0.3)" }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="#2d6a4f"/>
+                  </svg>
+                </div>
               </div>
-              <SunLargeIcon />
             </div>
 
-            {/* Automated Schedule */}
-            <div className="w-full max-w-[500px]">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-manrope font-bold text-lg text-white">Automated Schedule</h3>
-                <button className="flex items-center gap-1.5 font-jakarta font-bold text-[11px] uppercase tracking-widest text-[#FDD34D] hover:underline">
-                  <span className="text-sm leading-none">+</span> Add New Rule
-                </button>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* Morning Warmth */}
-                <div className="flex-1 rounded-2xl p-5" style={{ background: "#1A1A1A" }}>
-                  <div className="flex items-start justify-between mb-8">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(245,209,251,0.1)", color: "#F5D1FB" }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 4V2M12 22V20M4 12H2M22 12H20M6.34 6.34L4.93 4.93M17.66 17.66L19.07 19.07M17.66 6.34L19.07 4.93M6.34 17.66L4.93 19.07M12 18C8.686 18 6 15.314 6 12C6 8.686 8.686 6 12 6C15.314 6 18 8.686 18 12C18 15.314 15.314 18 12 18Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            {/* Rooms */}
+            <div className="space-y-10">
+              {(() => {
+                // Calculate max columns based on the room with most devices
+                const maxCols = Math.max(...roomData.map(r => r.devices.length + 1));
+                
+                return roomData.map((room) => (
+                  <section key={room.name}>
+                    <h2 className="font-manrope font-bold text-base text-white mb-4">
+                      {room.name}
+                    </h2>
+    
+                    <div
+                      className="grid gap-4"
+                      style={{
+                        gridTemplateColumns: `repeat(${maxCols}, 1fr)`,
+                      }}
+                    >
+                      {room.devices.map((device) => (
+                        <DeviceCard 
+                          key={device.id} 
+                          device={device} 
+                          onToggle={(next) => handleDeviceToggle(device.id, next)} 
+                        />
+                      ))}
+                      <AddDeviceCard />
                     </div>
-                    {/* Toggle Component */}
-                    <div className="w-10 h-5 rounded-full flex items-center px-0.5 cursor-pointer" style={{ background: "#484847" }}>
-                      <div className="w-4 h-4 rounded-full bg-[#FDD34D] transform translate-x-5 transition-transform" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="font-jakarta text-[10px] text-[#ADAAAA] mb-1">Morning Warmth</p>
-                    <p className="font-manrope font-bold text-sm text-white mb-4">07:30 AM — 09:00 AM</p>
-                    <div className="flex items-center gap-2 font-jakarta text-[10px] text-[#ADAAAA]">
-                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 0L8.5 5.5L14 7L8.5 8.5L7 14L5.5 8.5L0 7L5.5 5.5L7 0Z" fill="currentColor"/></svg>
-                      Gradual increase to 60%
-                    </div>
-                  </div>
-                </div>
-
-                {/* Night Mode */}
-                <div className="flex-1 rounded-2xl p-5" style={{ background: "#1A1A1A" }}>
-                  <div className="flex items-start justify-between mb-8">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(173,170,170,0.1)", color: "#ADAAAA" }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </div>
-                    {/* Toggle Component OFF */}
-                    <div className="w-10 h-5 rounded-full flex items-center px-0.5 cursor-pointer" style={{ background: "#262626" }}>
-                      <div className="w-4 h-4 rounded-full bg-[#888] transform translate-x-0 transition-transform" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="font-jakarta text-[10px] text-[#ADAAAA] mb-1">Night Mode</p>
-                    <p className="font-manrope font-bold text-sm text-white mb-4">11:00 PM — 06:00 AM</p>
-                    <div className="flex items-center gap-2 font-jakarta text-[10px] text-[#ADAAAA]">
-                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 4V2M12 20V22M4 12H2M22 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                      Auto Shut-off
-                    </div>
-                  </div>
-                </div>
-              </div>
+                  </section>
+                ));
+              })()}
             </div>
           </div>
 
-          {/* ── Right Column: Devices List (Toggleable) ── */}
+          {/* Right Sidebar - Recent Activity (toggleable) */}
           <div
-            className="flex flex-col overflow-hidden transition-all duration-300 ease-in-out shrink-0 border-l border-[#262626] bg-[#0A0A0A]"
+            className="hidden xl:flex flex-col overflow-hidden transition-all duration-300 ease-in-out"
             style={{
-              width: showRightPanel ? "340px" : "0px",
-              opacity: showRightPanel ? 1 : 0,
+              width: showNotifications ? "24rem" : "0px",
+              opacity: showNotifications ? 1 : 0,
             }}
           >
-            <aside className="w-[340px] h-full overflow-y-auto pt-8 pb-10 px-8 flex flex-col gap-6 scrollbar-hide">
-               {/* Search Bar */}
-               <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#ADAAAA] w-4 h-4" />
-                <input 
-                  type="text" 
-                  placeholder="SEARCH..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#1A1A1A] border border-[#262626] text-white text-sm rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-white transition-colors"
-                />
-              </div>
-
-              {/* Living Room Area */}
-              <div className="flex-1">
-                <h2 className="font-manrope font-bold text-lg text-white mb-6">Living Room</h2>
-                <div className="flex flex-col gap-3">
-                  {/* Ceiling Fan */}
-                  <div className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer hover:bg-[#262626] transition-colors relative" style={{ background: "#1A1A1A" }}>
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#262626] text-[#ADAAAA]">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 13C12.55 13 13.0208 12.8042 13.4125 12.4125C13.8042 12.0208 14 11.55 14 11C14 10.45 13.8042 9.97917 13.4125 9.5875C13.0208 9.19583 12.55 9 12 9C11.45 9 10.9792 9.19583 10.5875 9.5875C10.1958 9.97917 10 10.45 10 11C10 11.55 10.1958 12.0208 10.5875 12.4125C10.9792 12.8042 11.45 13 12 13ZM12 24C11.1 24 10.3958 23.6417 9.8875 22.925C9.37917 22.2083 9.2 21.4167 9.35 20.55L9.9 17.5C8.83333 17.1667 7.85833 16.6667 6.975 16C6.09167 15.3333 5.35 14.5333 4.75 13.6L2 14.85C1.2 15.2167 0.391667 15.1958 -0.425 14.7875C-1.24167 14.3792 -1.75 13.7167 -1.95 12.8L-2 12C-2 11.1 -1.64167 10.3958 -0.925 9.8875C-0.208333 9.37917 0.583333 9.2 1.45 9.35L4.5 9.9C4.83333 8.83333 5.33333 7.85833 6 6.975C6.66667 6.09167 7.46667 5.35 8.4 4.75L7.15 2C6.78333 1.2 6.80417 0.391667 7.2125 -0.425C7.62083 -1.24167 8.28333 -1.75 9.2 -1.95L10 -2C10.9 -2 11.6042 -1.64167 12.1125 -0.925C12.6208 -0.208333 12.8 0.583333 12.65 1.45L12.1 4.5C13.1667 4.83333 14.1417 5.33333 15.025 6C15.9083 6.66667 16.65 7.46667 17.25 8.4L20 7.15C20.8 6.78333 21.6083 6.80417 22.425 7.2125C23.2417 7.62083 23.75 8.28333 23.95 9.2L24 10C24 10.9 23.6417 11.6042 22.925 12.1125C22.2083 12.6208 21.4167 12.8 20.55 12.65L17.5 12.1C17.1667 13.1667 16.6667 14.1417 16 15.025C15.3333 15.9083 14.5333 16.65 13.6 17.25L14.85 20C15.2167 20.8 15.1958 21.6083 14.7875 22.425C14.3792 23.2417 13.7167 23.75 12.8 23.95L12 24Z" fill="currentColor"/></svg>
-                    </div>
-                    <div>
-                      <h4 className="font-manrope font-bold text-sm text-white">Ceiling Fan</h4>
-                      <p className="font-jakarta text-[10px] text-[#ADAAAA] mt-0.5">Speed 3 • On</p>
-                    </div>
-                    <div className="absolute right-4 w-3 h-3 rounded-full bg-[#FDD34D] flex items-center justify-center">
-                      <svg width="6" height="6" viewBox="0 0 8 8" fill="none"><path d="M3 6.5L0.5 4L1.2 3.3L3 5.1L6.8 1.3L7.5 2L3 6.5Z" fill="#5C4900"/></svg>
-                    </div>
-                  </div>
-
-                  {/* Air Purifier */}
-                  <div className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer hover:bg-[#262626] transition-colors" style={{ background: "#1A1A1A" }}>
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#262626] text-[#ADAAAA]">
-                      <svg width="18" height="14" viewBox="0 0 24 18" fill="none"><path d="M0 18V16H14C14.8333 16 15.5417 15.7083 16.125 15.125C16.7083 14.5417 17 13.8333 17 13C17 12.1667 16.7083 11.4583 16.125 10.875C15.5417 10.2917 14.8333 10 14 10H10V8H14C15.3833 8 16.5625 8.4875 17.5375 9.4625C18.5125 10.4375 19 11.6167 19 13C19 14.3833 18.5125 15.5625 17.5375 16.5375C16.5625 17.5125 15.3833 18 14 18H0ZM0 11V9H9C9.56667 9 10.0417 8.80417 10.425 8.4125C10.8083 8.02083 11 7.55 11 7C11 6.45 10.8083 5.97917 10.425 5.5875C10.0417 5.19583 9.56667 5 9 5H0V3H9C10.1 3 11.0417 3.39167 11.825 4.175C12.6083 4.95833 13 5.9 13 7C13 8.1 12.6083 9.04167 11.825 9.825C11.0417 10.6083 10.1 11 9 11H0ZM0 4V2H19C20.1 2 21.0417 1.60833 21.825 0.825C22.6083 0.0416667 23 -0.9 23 -2C23 -3.1 22.6083 -4.04167 21.825 -4.825C21.0417 -5.60833 20.1 -6 19 -6H16V-8H19C20.6667 -8 22.0833 -7.41667 23.25 -6.25C24.4167 -5.08333 25 -3.66667 25 -2C25 -0.333333 24.4167 1.08333 23.25 2.25C22.0833 3.41667 20.6667 4 19 4H0Z" fill="currentColor"/></svg>
-                    </div>
-                    <div>
-                      <h4 className="font-manrope font-bold text-sm text-white">Air Purifier</h4>
-                      <p className="font-jakarta text-[10px] text-[#ADAAAA] mt-0.5">Auto • 98% Quality</p>
-                    </div>
-                  </div>
-
-                  {/* Smart TV (Offline) */}
-                  <div className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer hover:bg-[#262626] transition-colors opacity-70" style={{ background: "#1A1A1A" }}>
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#262626] text-[#ADAAAA]">
-                      <svg width="18" height="14" viewBox="0 0 20 16" fill="none"><path d="M2.5 13H17.5V3H2.5V13ZM2.5 15C1.8125 15 1.22917 14.7552 0.75 14.2656C0.270833 13.776 0.03125 13.1875 0 12.5V3.5C0 2.8125 0.239583 2.224 0.71875 1.7345C1.19792 1.245 1.78646 1.00017 2.48438 1H17.5C18.1875 1 18.776 1.24483 19.2656 1.7345C19.7552 2.22417 20 2.81267 20 3.5V12.5C20 13.1875 19.7552 13.776 19.2656 14.2656C18.776 14.7552 18.1875 15 17.5 15H2.5ZM7 18V16H13V18H7Z" fill="currentColor"/></svg>
-                    </div>
-                    <div>
-                      <h4 className="font-manrope font-bold text-sm text-[#ADAAAA]">Smart TV</h4>
-                      <p className="font-jakarta text-[10px] text-[#888] mt-0.5">Offline</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Efficiency Tip */}
-              <div className="rounded-2xl p-5 border border-[rgba(253,211,77,0.1)] mt-auto shrink-0" style={{ background: "linear-gradient(180deg, rgba(253,211,77,0.05) 0%, rgba(26,26,26,0.8) 100%)" }}>
-                <div className="flex items-center gap-2 mb-3">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <path d="M13 2L4 14H12L11 22L20 10H12L13 2Z" fill="#FDD34D" stroke="#FDD34D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  <span className="font-jakarta font-bold text-[11px] text-[#FDD34D] uppercase tracking-widest">Efficiency Tip</span>
-                </div>
-                <p className="font-jakarta text-[11px] text-[#ADAAAA] leading-relaxed mb-5">
-                  Lowering brightness to 75% will save approx. 12% energy monthly without noticeable visibility loss.
-                </p>
-                <button 
-                  onClick={() => setBrightness(75)}
-                  className="w-full py-2.5 rounded-xl font-manrope font-bold text-xs text-white bg-[#2A2A2A] hover:bg-[#333] active:bg-[#222] transition-colors border border-[#484847]"
-                >
-                  Optimize All
-                </button>
-              </div>
-            </aside>
+            <div className="w-96 h-full p-4 md:p-8 sticky top-0 shrink-0">
+              <RecentActivity />
+            </div>
           </div>
         </main>
       </div>

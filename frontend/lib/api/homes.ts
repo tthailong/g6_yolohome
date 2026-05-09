@@ -3,10 +3,11 @@ import api from './client';
 export interface Home {
   id: number;
   name: string;
+  address?: string;
+  description?: string;
   adafruitiokey?: string;
   adafruitiouser?: string;
   owner_id?: number;
-  // Based on your database schema: name, adafruitiokey, adafruitiouser
 }
 
 export const homeService = {

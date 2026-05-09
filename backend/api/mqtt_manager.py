@@ -1,16 +1,27 @@
 import paho.mqtt.client as mqtt
 import json
+import asyncio
+import threading
+import os
 from socket_manager import manager as socket_manager
 from sqlalchemy.orm import Session
 import models
+
+# Store the main event loop to use for broadcasting from other threads
+main_loop = None
+mqtt_lock = threading.Lock()
+
+def set_main_loop(loop):
+    global main_loop
+    main_loop = loop
 
 class AdafruitMQTTClient:
     def __init__(self, home_id: int, username: str, key: str):
         self.home_id = home_id
         self.username = username.strip() if username else ""
         self.key = key.strip() if key else ""
-        # Use a unique client ID for each home connection
-        client_id = f"G6YoloHome_Client_{home_id}"
+        # Use a unique client ID that includes process ID to avoid clashes with orphaned processes
+        client_id = f"G6YoloHome_{home_id}_{os.getpid()}"
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
         self.client.username_pw_set(self.username, self.key)
         self.client.on_connect = self.on_connect
@@ -34,27 +45,27 @@ class AdafruitMQTTClient:
             print(f"DEBUG: Received message on {msg.topic}: {payload}")
             
             # Broadcast to WebSockets
-            import asyncio
             message = {
                 "type": "SENSOR_UPDATE",
                 "feed_name": feed_key,
                 "value": payload,
                 "timestamp": None # Could add if needed
             }
-            # Since on_message is called from the paho thread, we need to handle the event loop
-            try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(socket_manager.broadcast_to_home(self.home_id, message))
-            except RuntimeError:
-                # No running loop, or called from different context
-                asyncio.run(socket_manager.broadcast_to_home(self.home_id, message))
+            # Since on_message is called from the paho thread, we need to handle the event loop thread-safely
+            if main_loop:
+                main_loop.call_soon_threadsafe(
+                    lambda: asyncio.create_task(socket_manager.broadcast_to_home(self.home_id, message))
+                )
+            else:
+                print(f"DEBUG: No main loop set, cannot broadcast message")
                 
         except Exception as e:
             print(f"DEBUG: Error in on_message: {str(e)}")
 
     def start(self, feeds: list):
         self.feeds = feeds
-        self.client.connect("io.adafruit.com", 1883, 60)
+        # Use connect_async to avoid blocking the FastAPI event loop
+        self.client.connect_async("io.adafruit.com", 1883, 60)
         self.client.loop_start()
 
     def stop(self):
@@ -70,10 +81,11 @@ class AdafruitMQTTClient:
 active_mqtt_clients = {}
 
 def ensure_mqtt_for_home(home_id: int, db: Session):
-    if home_id in active_mqtt_clients:
-        return active_mqtt_clients[home_id]
+    with mqtt_lock:
+        if home_id in active_mqtt_clients:
+            return active_mqtt_clients[home_id]
         
-    home = db.query(models.Home).filter(models.Home.id == home_id).first()
+        home = db.query(models.Home).filter(models.Home.id == home_id).first()
     if not home:
         print(f"DEBUG: Home {home_id} not found for MQTT initialization")
         return None

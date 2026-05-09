@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { dashboardService, SensorSummary } from "@/lib/api/dashboard";
 import { WebSocketClient } from "@/lib/api/socket";
+import { useDevices } from "@/app/context/DeviceContext";
 
 function TemperatureCard({ value }: { value: string | number }) {
   return (
@@ -86,14 +87,16 @@ function MembersCard() {
 }
 
 export default function StatCards() {
+  const { selectedHomeId } = useDevices();
   const [data, setData] = useState<SensorSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!selectedHomeId) return;
+
     const fetchSummary = async () => {
       try {
-        // Assuming home_id 1 for now, in a real app this would come from context/url
-        const summary = await dashboardService.getSummary(1);
+        const summary = await dashboardService.getSummary(selectedHomeId);
         setData(summary);
       } catch (error) {
         console.error("Failed to fetch dashboard summary:", error);
@@ -105,17 +108,10 @@ export default function StatCards() {
     fetchSummary();
     
     // Setup WebSocket for real-time updates
-    const ws = new WebSocketClient(1, (message) => {
+    const ws = new WebSocketClient(selectedHomeId, (message) => {
       if (message.type === "SENSOR_UPDATE") {
         setData(prevData => prevData.map(sensor => {
-          if (sensor.sensor_type === 'temperature' && message.feed_name.includes('temp')) {
-             return { ...sensor, last_value: message.value };
-          }
-           if (sensor.sensor_type === 'humidity' && message.feed_name.includes('humid')) {
-             return { ...sensor, last_value: message.value };
-          }
-          // fallback if feed name matches exactly
-          if (sensor.sensor_id.toString() === message.feed_name || sensor.device_name === message.feed_name) {
+          if (sensor.feed_name === message.feed_name) {
              return { ...sensor, last_value: message.value };
           }
           return sensor;
@@ -126,7 +122,7 @@ export default function StatCards() {
     ws.connect();
 
     return () => ws.disconnect();
-  }, []);
+  }, [selectedHomeId]);
 
   const tempSensor = data.find(s => s.sensor_type === 'temperature');
   const humidSensor = data.find(s => s.sensor_type === 'humidity');

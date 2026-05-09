@@ -1,35 +1,14 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useDevices } from "@/app/context/DeviceContext";
+import { dashboardService } from "@/lib/api/dashboard";
 
-const activities = [
-  {
-    category: "URGENT",
-    title: "Detect earthquake!",
-    description: "Seismic activity detected in Zone B. Executing safety lock.",
-    time: "2m ago",
-    theme: "urgent", // Reddish
-  },
-  {
-    category: "CLIMATE",
-    title: "Temperature is high",
-    description: "Living room at 36°C. Activating cooling systems.",
-    time: "15m ago",
-    theme: "climate", // Yellowish
-  },
-  {
-    category: "SECURITY",
-    title: "Face Identified: Alex",
-    description: "Front door unlocked by recognized family member.",
-    time: "45m ago",
-    theme: "security", // Default dark
-  },
-  {
-    category: "DEVICE",
-    title: "Vacuuming Complete",
-    description: "Living room cleaning finished. Returning to base.",
-    time: "1h ago",
-    theme: "device", // Default dark
-  },
-];
+interface Activity {
+  category: string;
+  title: string;
+  description: string;
+  time: string;
+  theme: string;
+}
 
 const activityThemes: Record<string, { bg: string; border: string; title: string; category: string }> = {
   urgent: {
@@ -58,7 +37,55 @@ const activityThemes: Record<string, { bg: string; border: string; title: string
   },
 };
 
+const formatTime = (isoString: string) => {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  
+  const isThisYear = date.getFullYear() === now.getFullYear();
+  const dateOptions: Intl.DateTimeFormatOptions = { 
+    day: '2-digit', 
+    month: 'short',
+    ...(isThisYear ? {} : { year: 'numeric' })
+  };
+  
+  const dateStr = date.toLocaleDateString('vi-VN', dateOptions);
+  const timeStr = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+  if (diffMins < 0) return timeStr; // Future date?
+  if (diffMins < 1) return "Vừa xong";
+  if (diffMins < 60) return `${diffMins} phút trước (${timeStr})`;
+  if (diffHours < 24) return `${timeStr}, ${dateStr}`;
+  return `${dateStr} ${timeStr}`;
+};
+
 export default function RecentActivity() {
+  const { selectedHomeId } = useDevices();
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      if (!selectedHomeId) return;
+      try {
+        setLoading(true);
+        const data = await dashboardService.getActivities(selectedHomeId, 10);
+        setActivities(data);
+      } catch (error) {
+        console.error("Failed to fetch activities:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivities();
+    // Refresh every minute
+    const interval = setInterval(fetchActivities, 60000);
+    return () => clearInterval(interval);
+  }, [selectedHomeId]);
+
   return (
     <aside
       className="flex flex-col gap-8 p-6 md:p-8 rounded-xl h-full w-full"
@@ -73,33 +100,44 @@ export default function RecentActivity() {
       </div>
 
       {/* Activity List */}
-      <div className="flex flex-col gap-4 overflow-y-auto">
-        {activities.map((activity, index) => {
-          const theme = activityThemes[activity.theme];
-          return (
-            <div
-              key={index}
-              className="flex flex-col gap-2 p-4 rounded-xl transition-all duration-300 hover:brightness-125"
-              style={{
-                background: theme.bg,
-                border: `1px solid ${theme.border}`,
-              }}
-            >
-              <div className="flex justify-between items-start">
-                <span className="font-jakarta font-bold text-[8px] tracking-widest uppercase" style={{ color: theme.category }}>
-                  {activity.category}
-                </span>
-                <span className="font-jakarta font-medium text-[8px]" style={{ color: "#ADAAAA" }}>
-                  {activity.time}
-                </span>
+      <div className="flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2">
+        {loading && activities.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FDD34D] mx-auto mb-4"></div>
+            <p className="text-[#ADAAAA] text-xs">Fetching records...</p>
+          </div>
+        ) : activities.length > 0 ? (
+          activities.map((activity, index) => {
+            const theme = activityThemes[activity.theme] || activityThemes.device;
+            return (
+              <div
+                key={index}
+                className="flex flex-col gap-2 p-4 rounded-xl transition-all duration-300 hover:brightness-125"
+                style={{
+                  background: theme.bg,
+                  border: `1px solid ${theme.border}`,
+                }}
+              >
+                <div className="flex justify-between items-start">
+                  <span className="font-jakarta font-bold text-[8px] tracking-widest uppercase" style={{ color: theme.category }}>
+                    {activity.category}
+                  </span>
+                  <span className="font-jakarta font-medium text-[8px]" style={{ color: "#ADAAAA" }}>
+                    {formatTime(activity.time)}
+                  </span>
+                </div>
+                <h4 className="font-manrope font-extrabold text-sm text-white">{activity.title}</h4>
+                <p className="font-jakarta font-medium text-[10px] leading-relaxed" style={{ color: "rgba(173, 170, 170, 0.8)" }}>
+                  {activity.description}
+                </p>
               </div>
-              <h4 className="font-manrope font-extrabold text-sm text-white">{activity.title}</h4>
-              <p className="font-jakarta font-medium text-[10px] leading-relaxed" style={{ color: "rgba(173, 170, 170, 0.8)" }}>
-                {activity.description}
-              </p>
-            </div>
-          );
-        })}
+            );
+          })
+        ) : (
+          <div className="text-center py-8 border border-dashed border-[#484847] rounded-xl">
+             <p className="text-[#ADAAAA] text-xs">No recent activity detected.</p>
+          </div>
+        )}
       </div>
 
       {/* View All Button */}
@@ -112,3 +150,4 @@ export default function RecentActivity() {
     </aside>
   );
 }
+

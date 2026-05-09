@@ -7,7 +7,7 @@ from jose import jwt
 from dotenv import load_dotenv
 import os
 from models import User, Admin
-from deps import db_dependency, bcrypt_context
+from deps import db_dependency, bcrypt_context, get_current_user
 
 load_dotenv()
 
@@ -79,6 +79,45 @@ async def login_admin_for_access_token(form_data: Annotated[OAuth2PasswordReques
     token = create_access_token(admin.username, admin.id, 'admin', timedelta(minutes=20))
 
     return {'access_token': token, 'token_type': 'bearer'}
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    phone: str
+    role: str
+
+@router.get("/me", response_model=UserResponse)
+async def get_current_user_profile(db: db_dependency, user: Annotated[dict, Depends(get_current_user)]):
+    user_model = db.query(User).filter(User.id == user.get('id')).first()
+    if not user_model:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {
+        "id": user_model.id,
+        "username": user_model.username,
+        "email": user_model.email,
+        "phone": user_model.phone,
+        "role": user_model.role
+    }
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+@router.put("/password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_password(db: db_dependency, user: Annotated[dict, Depends(get_current_user)], request: ChangePasswordRequest):
+    user_model = db.query(User).filter(User.id == user.get('id')).first()
+    if not user_model:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if not bcrypt_context.verify(request.old_password, user_model.password):
+        raise HTTPException(status_code=400, detail="Incorrect old password")
+    
+    user_model.password = bcrypt_context.hash(request.new_password)
+    db.add(user_model)
+    db.commit()
+
+
 
 
 

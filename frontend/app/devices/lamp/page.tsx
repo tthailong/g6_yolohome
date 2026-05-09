@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import LightTopNav from "@/components/dashboard/LightTopNav";
-import { WebSocketClient } from "@/lib/api/socket";
-import { deviceService } from "@/lib/api/devices";
+import { useDevices } from "@/app/context/DeviceContext";
 
 /* ── Icons ───────────────────────────────────────────────────────── */
 const BulbIcon = () => (
@@ -28,32 +27,40 @@ const SunLargeIcon = () => (
 /* ── Components ──────────────────────────────────────────────────── */
 
 export default function SmartLightPage() {
-  const [isOn, setIsOn] = useState(false);
-  const [brightness, setBrightness] = useState(85);
+  const { deviceStates, updateDeviceState } = useDevices();
   const [showRightPanel, setShowRightPanel] = useState(true);
 
-  useEffect(() => {
-    const ws = new WebSocketClient(1, (message) => {
-      if (message.type === "SENSOR_UPDATE" && message.feed_name === "dadn.led-state") {
-        setIsOn(message.value === "1");
+  const isOn = deviceStates["dadn.led-state"] == "1";
+  const brightness = deviceStates["dadn.led-sate"] || "85"; 
+
+  const brightnessTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastActionTime = useRef(0);
+
+  const handleBrightnessChange = (value: number) => {
+    if (brightnessTimerRef.current) {
+      clearTimeout(brightnessTimerRef.current);
+    }
+
+    brightnessTimerRef.current = setTimeout(async () => {
+      try {
+        const normalizedValue = (value / 100).toFixed(2);
+        lastActionTime.current = Date.now();
+        await updateDeviceState("dadn.led-sate", normalizedValue);
+      } catch (error) {
+        console.error("Failed to set brightness:", error);
       }
-    });
-    ws.connect();
-    return () => ws.disconnect();
-  }, []);
+    }, 1000);
+  };
 
   const handleToggle = async () => {
     const nextState = !isOn;
-    setIsOn(nextState);
+    lastActionTime.current = Date.now();
     try {
-      await deviceService.control({
-        home_id: 1,
-        feed_name: "dadn.led-state",
-        value: nextState ? "1" : "0"
-      });
+      // If we are turning it on from an 'off' state (0), maybe default to 85%
+      const valueToSend = nextState ? brightness > 0 ? brightness : "85" : "0";
+      await updateDeviceState("dadn.led-sate", valueToSend);
     } catch (error) {
-      console.error("Failed to control LED:", error);
-      setIsOn(!nextState);
+      console.error("Failed to control LED state:", error);
     }
   };
 
@@ -153,11 +160,7 @@ export default function SmartLightPage() {
                   min="0"
                   max="100"
                   value={brightness}
-                  onChange={(e) => {
-                    const v = parseInt(e.target.value);
-                    setBrightness(v);
-                    if (v > 0) setIsOn(true);
-                  }}
+                  onChange={(e) => handleBrightnessChange(parseInt(e.target.value))}
                   className="absolute inset-0 w-full opacity-0 cursor-pointer"
                 />
                 <div
