@@ -43,9 +43,9 @@ export default function SmartDoorPage() {
                 Devices
               </Link>
               <span className="mx-2">/</span>
-              <span>Bedroom</span>
+              <span>Living Room</span>
               <span className="mx-2">/</span>
-              <span className="text-white font-medium">Front door</span>
+              <span className="text-white font-medium">Door</span>
             </div>
 
             {/* Camera Feed Section */}
