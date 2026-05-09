@@ -61,6 +61,22 @@ A modern, responsive smart home dashboard built with Next.js and Tailwind CSS.
    pip install -r backend/requirement.txt
    ```
 
+### Environment Configuration
+
+Create a `.env` file in the `backend/` directory with the following content:
+
+```env
+# Auth Configuration
+AUTH_SECRET_KEY=your_secret_key_here
+AUTH_ALGORITHM=HS256
+
+# Database Configuration
+DATABASE_URL=mysql+pymysql://root:password@localhost:3306/g6yolohome
+
+# API & Frontend URLs
+API_URL=http://localhost:3000
+```
+
 ### Development
 
 **1. Run Frontend**:
@@ -87,40 +103,31 @@ Open [http://localhost:8000/docs](http://localhost:8000/docs) to view the API do
 
 ```
 g6_yolohome/
-├── venv/               # Python Virtual Environment
-├── backend/
-│   ├── api/             # API Core (main, models, schemas, database)
-│   ├── .env             # Environment variables
-│   └── requirement.txt  # Python dependencies
-│   └── g6yolohome.sql   # Database schema
-├── frontend/
-│   ├── app/
-│   │   ├── devices/
-│   │   │   ├── lamp/
-│   │   │   │   └── page.tsx
-│   │   │   ├── door/
-│   │   │   │   └── page.tsx
-│   │   │   ├── page.tsx
-│   │   │   └── layout.tsx
-│   │   ├── page.tsx
-│   │   └── layout.tsx
-│   ├── components/
-│   │   ├── dashboard/
-│   │   │   ├── Sidebar.tsx
-│   │   │   ├── DeviceCard.tsx
-│   │   │   ├── LightTopNav.tsx
-│   │   │   └── DevicesTopNav.tsx
-│   │   └── ui/
-│   │       ├── button.tsx
-│   │       └── ...
-│   ├── public/
-│   ├── styles/
-│   │   └── globals.css
-│   ├── types/
-│   │   └── index.ts
-│   ├── next.config.ts
-│   ├── package.json
-│   └── tsconfig.json
+├── backend/             # FastAPI Backend
+│   ├── api/             # API Core logic
+│   │   ├── routers/     # API Route Handlers
+│   │   ├── main.py      # Server entry point
+│   │   ├── models.py    # Database models
+│   │   ├── schemas.py   # Pydantic models
+│   │   ├── database.py  # Connection setup
+│   │   ├── mqtt_manager.py  # MQTT Manager
+│   │   ├── deps.py      # Dependencies
+│   │   ├── socket_manager.py # Socket Manager
+│   │   └── .env             # Environment variables
+│   ├── requirement.txt  # Dependencies
+│   └── g6yolohome.sql   # Database Initialization
+├── frontend/            # Next.js Frontend
+│   ├── app/             # App Router pages
+│   │   ├── contexts/    # Context pages
+│   │   ├── devices/     # Device pages
+│   │   │   ├── page.tsx # Device list
+│   │   │   ├── lamp/    # Lamp page
+│   │   │   └── door/    # Door page
+│   │   └── ...         # More pages
+│   ├── components/      # UI components
+│   ├── context/         # React Context (State)
+│   └── lib/             # API Clients & Helpers
+├── venv/                # Python Virtual Env
 └── README.md
 ```
 
