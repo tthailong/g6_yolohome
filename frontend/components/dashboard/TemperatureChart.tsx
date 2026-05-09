@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { dashboardService, AdafruitData } from "@/lib/api/dashboard";
+import { useDevices } from "@/app/context/DeviceContext";
 
 /* ── 24 hourly labels ─────────────────────────────────────── */
 const timeLabels = [
@@ -60,6 +61,7 @@ const generatePath = (data: number[], height: number, max: number) => {
 };
 
 export default function TemperatureChart({ selectedDate }: { selectedDate: Date }) {
+  const { selectedHomeId } = useDevices();
   const [activeTab, setActiveTab] = useState<"temperature" | "humidity">("temperature");
   const [zoom, setZoom] = useState(false);
   const [history, setHistory] = useState<AdafruitData[]>([]);
@@ -76,21 +78,27 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
 
   useEffect(() => {
     const fetchHistory = async () => {
+      if (!selectedDate || !selectedHomeId) return;
       setLoading(true);
       try {
-        // Use local time for date string to avoid UTC shift
+        // 1. Get summary to find the correct sensor ID for this home
+        const summary = await dashboardService.getSummary(selectedHomeId);
+        const sensor = summary.find(s => s.sensor_type === activeTab);
+        
+        if (!sensor) {
+          console.warn(`No sensor found for type: ${activeTab}`);
+          setHistory([]);
+          setLoading(false);
+          return;
+        }
+
+        // 2. Fetch history for that sensor
         const year = selectedDate.getFullYear();
         const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
         const day = String(selectedDate.getDate()).padStart(2, '0');
         const dateStr = `${year}-${month}-${day}`;
-        // For now using sensor_id 1 for temp, 2 for humid based on install_dht20.sql
-        const sensorId = isTemp ? 1 : 2; 
-        const data = await dashboardService.getHistory(sensorId, dateStr);
-        console.log(`DEBUG: Fetched ${data.length} history items for sensor ${sensorId}`);
-        if (data.length > 0) {
-           console.log(`DEBUG: Latest data point: ${data[0].created_at}, value: ${data[0].value}`);
-           console.log(`DEBUG: Oldest data point: ${data[data.length-1].created_at}`);
-        }
+        
+        const data = await dashboardService.getHistory(sensor.sensor_id, dateStr);
         setHistory(data);
       } catch (error) {
         console.error("Failed to fetch history:", error);
@@ -102,7 +110,7 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
     fetchHistory();
     const interval = setInterval(fetchHistory, 180000); // 3 minutes
     return () => clearInterval(interval);
-  }, [selectedDate, activeTab, isTemp]);
+  }, [selectedDate, activeTab, selectedHomeId]);
 
   useEffect(() => {
     const el = scrollRef.current;

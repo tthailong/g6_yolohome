@@ -28,11 +28,10 @@ export class WebSocketClient {
     };
 
     this.socket.onerror = (error) => {
-      console.error("WebSocket Error Details:", {
-        url: this.url,
-        readyState: this.socket?.readyState,
-        error: error
-      });
+      console.error(`[WebSocket] Error connecting to ${this.url}`);
+      console.error(`[WebSocket] ReadyState: ${this.socket?.readyState}`);
+      // Log the full error object for browser console inspection
+      console.error("[WebSocket] Error Details:", error);
       this.socket?.close();
     };
   }

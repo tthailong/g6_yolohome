@@ -1,4 +1,4 @@
-﻿# Smart Home Dashboard
+# Smart Home Dashboard
 
 A modern, responsive smart home dashboard built with Next.js and Tailwind CSS.
 
@@ -43,8 +43,11 @@ A modern, responsive smart home dashboard built with Next.js and Tailwind CSS.
 
 3. Setup Database (only first time):
    ```bash
+   # Full setup with sample data (Recommended)
    mysql -u root -p < backend/g6yolohome.sql
    ```
+
+   *Note: The script creates an admin (`adminapp`) and a user (`hailong`), both with the password `password`.*
 
 4. Setup Backend (from project root):
    ```bash

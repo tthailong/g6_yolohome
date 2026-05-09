@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/app/context/AuthContext";
 import { AlertProvider } from "@/app/context/AlertContext";
+import { DeviceProvider } from "@/app/context/DeviceContext";
 import GlobalAlert from "@/components/dashboard/GlobalAlert";
 
 const geistSans = Geist({
@@ -27,17 +28,19 @@ export default function RootLayout({
 }>) {
   return (
     <AuthProvider>
-      <AlertProvider>
-        <html
-          lang="en"
-          className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-        >
-          <body className="min-h-full flex flex-col relative text-white">
-            <GlobalAlert />
-            {children}
-          </body>
-        </html>
-      </AlertProvider>
+      <DeviceProvider>
+        <AlertProvider>
+          <html
+            lang="en"
+            className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+          >
+            <body className="min-h-full flex flex-col relative text-white">
+              <GlobalAlert />
+              {children}
+            </body>
+          </html>
+        </AlertProvider>
+      </DeviceProvider>
     </AuthProvider>
   );
 }

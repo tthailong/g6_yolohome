@@ -19,6 +19,16 @@ class AdafruitIOClient:
             response.raise_for_status()
             return response.json()
 
+    async def get_feed_data(self, feed_key: str, limit: int = 20) -> List[Dict[str, Any]]:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.base_url}/feeds/{feed_key}/data",
+                headers=self.headers,
+                params={"limit": limit}
+            )
+            response.raise_for_status()
+            return response.json()
+
     async def get_historical_data(self, feed_key: str, start_time: str, end_time: str) -> List[Dict[str, Any]]:
         """
         start_time and end_time should be in ISO 8601 format

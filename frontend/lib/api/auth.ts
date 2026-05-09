@@ -14,5 +14,12 @@ export const authService = {
   register: async (userData: any) => {
     const response = await api.post('/auth/', userData);
     return response.data;
+  },
+  getMe: async () => {
+    const response = await api.get('/auth/me');
+    return response.data;
+  },
+  changePassword: async (passwordData: any) => {
+    await api.put('/auth/password', passwordData);
   }
 };

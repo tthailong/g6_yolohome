@@ -100,3 +100,114 @@ async def get_dashboard_summary(
             })
             
     return summary
+@router.get("/activities")
+async def get_activities(
+    db: db_dependency,
+    user: user_dependency,
+    home_id: int,
+    limit: int = Query(20, description="Number of activities to return")
+):
+    # 1. Verify home belongs to user
+    home = db.query(models.Home).filter(
+        models.Home.id == home_id,
+        models.Home.owner_id == user.get('id')
+    ).first()
+    
+    if not home:
+        raise HTTPException(status_code=404, detail="Home not found")
+    
+    # 2. Get relevant sensors for this home
+    # We look for temperature, humidity, and earthquake (or similar)
+    sensors = db.query(models.Sensor).join(models.Device).filter(
+        models.Device.home_id == home_id,
+        models.Sensor.sensor_type.in_(['temperature', 'humidity', 'earthquake', 'security'])
+    ).all()
+    
+    client = AdafruitIOClient(home.adafruitiouser, home.adafruitiokey)
+    
+    all_activities = []
+    
+    for sensor in sensors:
+        try:
+            # Fetch a larger set of recent data to provide a better history
+            data_points = await client.get_feed_data(sensor.feed_name, limit=50)
+            
+            # Process from oldest to newest to detect threshold crossings
+            is_above = False
+            for point in reversed(data_points):
+                val_str = point.get('value', '0')
+                try:
+                    val = float(val_str)
+                except ValueError:
+                    val = 0
+                
+                threshold_crossed = False
+                activity = None
+                created_at = point.get('created_at')
+                
+                if sensor.sensor_type == 'temperature':
+                    if val > 30:
+                        if not is_above:
+                            threshold_crossed = True
+                            activity = {
+                                "category": "CLIMATE",
+                                "title": "High Temperature",
+                                "description": f"{sensor.device.name} detected {val}°C.",
+                                "time": created_at,
+                                "theme": "climate"
+                            }
+                        is_above = True
+                    else:
+                        is_above = False
+                        
+                elif sensor.sensor_type == 'humidity':
+                    if val > 60:
+                        if not is_above:
+                            threshold_crossed = True
+                            activity = {
+                                "category": "CLIMATE",
+                                "title": "High Humidity",
+                                "description": f"{sensor.device.name} detected {val}% humidity.",
+                                "time": created_at,
+                                "theme": "climate"
+                            }
+                        is_above = True
+                    else:
+                        is_above = False
+                        
+                elif sensor.sensor_type == 'earthquake':
+                    # Every new entry in the earthquake feed is an event
+                    activity = {
+                        "category": "URGENT",
+                        "title": "Earthquake Detected!",
+                        "description": f"Seismic activity detected by {sensor.device.name}: {val_str}",
+                        "time": created_at,
+                        "theme": "urgent"
+                    }
+                    # We don't use 'is_above' here because each entry is a discrete event
+                        
+                elif sensor.sensor_type == 'security':
+                    if val == 1:
+                        if not is_above:
+                            threshold_crossed = True
+                            activity = {
+                                "category": "SECURITY",
+                                "title": "Intrusion Alert",
+                                "description": f"Security breach detected by {sensor.device.name}.",
+                                "time": created_at,
+                                "theme": "security"
+                            }
+                        is_above = True
+                    else:
+                        is_above = False
+                
+                if activity:
+                    all_activities.append(activity)
+        except Exception as e:
+            print(f"Error fetching activities for {sensor.feed_name}: {e}")
+            continue
+
+    # Sort by time descending
+    all_activities.sort(key=lambda x: x['time'], reverse=True)
+    
+    return all_activities[:limit]

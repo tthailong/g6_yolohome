@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button";
 export default function MembersPage() {
   const [showNotifications, setShowNotifications] = useState(true);
 
-  // Dữ liệu mẫu (Mock data) chờ API
+  // Mock data waiting for API
   const members = [
-    { id: 1, name: "Gia Hân", role: "Owner", email: "han@example.com", status: "Active" },
-    { id: 2, name: "Ngọc Dung", role: "Admin", email: "dung@example.com", status: "Active" },
-    { id: 3, name: "Bảo Hân", role: "Member", email: "baohan@example.com", status: "Pending" },
+    { id: 1, name: "Gia Han", role: "Owner", email: "han@example.com", status: "Active" },
+    { id: 2, name: "Ngoc Dung", role: "Admin", email: "dung@example.com", status: "Active" },
+    { id: 3, name: "Bao Han", role: "Member", email: "baohan@example.com", status: "Pending" },
   ];
 
   return (
@@ -32,11 +32,11 @@ export default function MembersPage() {
               {/* Header */}
               <div className="flex justify-between items-center bg-[#1A1A1A] p-6 rounded-2xl">
                 <div>
-                  <h1 className="text-2xl font-bold">Quản lý thành viên</h1>
-                  <p className="text-[#ADAAAA] text-sm mt-1">Cài đặt quyền truy cập thiết bị cho nhà của bạn.</p>
+                  <h1 className="text-2xl font-bold">Members Management</h1>
+                  <p className="text-[#ADAAAA] text-sm mt-1">Manage device access permissions for your home.</p>
                 </div>
                 <Button className="bg-[#FDD34D] text-[#5C4900] hover:bg-[#e5bc3e] font-bold">
-                  + Thêm thành viên
+                  + Add Member
                 </Button>
               </div>
 
@@ -59,7 +59,7 @@ export default function MembersPage() {
                           {member.role}
                         </span>
                         <Button variant="outline" className="border-[#2A2A2A] text-white hover:bg-[#2A2A2A]">
-                          Quản lý
+                          Manage
                         </Button>
                       </div>
                     </div>
@@ -72,4 +72,4 @@ export default function MembersPage() {
       </div>
     </ProtectedRoute>
   );
-}
+}

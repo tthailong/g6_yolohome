@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import DeviceCard, { AddDeviceCard } from "@/components/dashboard/DeviceCard";
 import type { DeviceCardData } from "@/components/dashboard/DeviceCard";
+import RecentActivity from "@/components/dashboard/RecentActivity";
 import { WebSocketClient } from "@/lib/api/socket";
 import { deviceService } from "@/lib/api/devices";
+import  { useDevices }  from "@/app/context/DeviceContext";
 
 /* ── Icons ───────────────────────────────────────────────── */
 const LightIcon = () => (
@@ -85,9 +87,9 @@ const INITIAL_ROOMS: { name: string; devices: (DeviceCardData & { feedName?: str
         status: "locked",
         badge: "LOCKED",
         badgeColor: "#D53D18",
-        isMood: true,
         noToggle: true,
         icon: <LockIcon />,
+        href: "/devices/door",
       },
     ],
   },
@@ -123,9 +125,9 @@ const INITIAL_ROOMS: { name: string; devices: (DeviceCardData & { feedName?: str
         status: "locked",
         badge: "LOCKED",
         badgeColor: "#D53D18",
-        isMood: true,
         noToggle: true,
         icon: <LockIcon />,
+        href: "/devices/door",
       },
       {
         id: "d7",
@@ -146,15 +148,22 @@ const INITIAL_ROOMS: { name: string; devices: (DeviceCardData & { feedName?: str
 ];
 
 /* ── Top Nav for Devices ─────────────────────────────────── */
-function DevicesTopNav() {
+/* ── Top Nav for Devices ─────────────────────────────────── */
+function DevicesTopNav({ 
+  showNotifications, 
+  onToggleNotifications 
+}: { 
+  showNotifications: boolean; 
+  onToggleNotifications: () => void;
+}) {
   return (
     <header
-      className="fixed top-0 right-0 z-30 flex items-center justify-between h-14 px-6"
+      className="fixed top-0 right-0 z-30 flex items-center justify-between h-16 px-6 md:px-8"
       style={{
         left: "80px",
-        background: "rgba(14,14,14,0.85)",
-        backdropFilter: "blur(12px)",
-        borderBottom: "1px solid rgba(72,72,71,0.4)",
+        background: "#0E0E0E",
+        backdropFilter: "blur(6px)",
+        borderBottom: "1px solid #484847",
       }}
     >
       {/* Breadcrumb */}
@@ -167,29 +176,53 @@ function DevicesTopNav() {
         </span>
       </div>
 
-      {/* Right: Search + Bell + Avatar */}
-      <div className="flex items-center gap-5">
+      {/* Right: Search + Bell + Avatar (Matching Dashboard) */}
+      <div className="flex items-center gap-4 md:gap-6">
+        {/* Search */}
         <div
-          className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg w-44"
-          style={{ background: "#1A1A1A" }}
+          className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg w-48 lg:w-64"
+          style={{ background: "#262626", border: "1px solid #484847" }}
         >
-          <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M12.45 13.5L7.725 8.775C7.35 9.075 6.91875 9.3125 6.43125 9.4875C5.94375 9.6625 5.425 9.75 4.875 9.75C3.5125 9.75 2.35938 9.27813 1.41562 8.33438C0.471875 7.39063 0 6.2375 0 4.875C0 3.5125 0.471875 2.35938 1.41562 1.41562C2.35938 0.471875 3.5125 0 4.875 0C6.2375 0 7.39063 0.471875 8.33438 1.41562C9.27813 2.35938 9.75 3.5125 9.75 4.875C9.75 5.425 9.6625 5.94375 9.4875 6.43125C9.3125 6.91875 9.075 7.35 8.775 7.725L13.5 12.45L12.45 13.5ZM4.875 8.25C5.8125 8.25 6.60938 7.92188 7.26562 7.26562C7.92188 6.60938 8.25 5.8125 8.25 4.875C8.25 3.9375 7.92188 3.14062 7.26562 2.48438C6.60938 1.82812 5.8125 1.5 4.875 1.5C3.9375 1.5 3.14062 1.82812 2.48438 2.48438C1.82812 3.14062 1.5 3.9375 1.5 4.875C1.5 5.8125 1.82812 6.60938 2.48438 7.26562C3.14062 7.92188 3.9375 8.25 4.875 8.25Z" fill="#ADAAAA"/>
           </svg>
-          <span className="font-jakarta text-[10px] tracking-widest uppercase text-[#ADAAAA]">
-            Search...
+          <span className="font-jakarta font-bold text-[10px] tracking-widest uppercase" style={{ color: "#ADAAAA" }}>
+            SEARCH...
           </span>
         </div>
 
-        <svg width="16" height="20" viewBox="0 0 16 20" fill="none" className="cursor-pointer">
-          <path d="M0 17V15H2V8C2 6.61667 2.41667 5.3875 3.25 4.3125C4.08333 3.2375 5.16667 2.53333 6.5 2.2V1.5C6.5 1.08333 6.64583 0.729167 6.9375 0.4375C7.22917 0.145833 7.58333 0 8 0C8.41667 0 8.77083 0.145833 9.0625 0.4375C9.35417 0.729167 9.5 1.08333 9.5 1.5V2.2C10.8333 2.53333 11.9167 3.2375 12.75 4.3125C13.5833 5.3875 14 6.61667 14 8V15H16V17H0ZM8 20C7.45 20 6.97917 19.8042 6.5875 19.4125C6.19583 19.0208 6 18.55 6 18H10C10 18.55 9.80417 19.0208 9.4125 19.4125C9.02083 19.8042 8.55 20 8 20Z" fill="#ADAAAA"/>
-        </svg>
-
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer font-manrope font-bold text-sm"
-          style={{ background: "#FDD34D", color: "#5C4900" }}
+        {/* Bell — toggles notification panel */}
+        <button
+          onClick={onToggleNotifications}
+          className="relative p-1 rounded-lg transition-all duration-200 hover:bg-[#1A1A1A]"
+          aria-label="Toggle notifications"
         >
-          L
+          <svg width="16" height="20" viewBox="0 0 16 20" fill="none"
+            style={{ filter: showNotifications ? "drop-shadow(0 0 6px #FDD34D)" : "none" }}
+          >
+            <path d="M0 17V15H2V8C2 6.61667 2.41667 5.3875 3.25 4.3125C4.08333 3.2375 5.16667 2.53333 6.5 2.2V1.5C6.5 1.08333 6.64583 0.729167 6.9375 0.4375C7.22917 0.145833 7.58333 0 8 0C8.41667 0 8.77083 0.145833 9.0625 0.4375C9.35417 0.729167 9.5 1.08333 9.5 1.5V2.2C10.8333 2.53333 11.9167 3.2375 12.75 4.3125C13.5833 5.3875 14 6.61667 14 8V15H16V17H0ZM8 20C7.45 20 6.97917 19.8042 6.5875 19.4125C6.19583 19.0208 6 18.55 6 18H10C10 18.55 9.80417 19.0208 9.4125 19.4125C9.02083 19.8042 8.55 20 8 20ZM4 15H12V8C12 6.9 11.6083 5.95833 10.825 5.175C10.0417 4.39167 9.1 4 8 4C6.9 4 5.95833 4.39167 5.175 5.175C4.39167 5.95833 4 6.9 4 8V15Z"
+              fill={showNotifications ? "#FDD34D" : "#ADAAAA"}
+            />
+          </svg>
+          {/* Active dot */}
+          {showNotifications && (
+            <span
+              className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full"
+              style={{ background: "#FDD34D" }}
+            />
+          )}
+        </button>
+
+        {/* Avatar */}
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden cursor-pointer"
+          style={{ border: "1px solid #484847", background: "#262626" }}
+        >
+          <img
+            src="https://api.builder.io/api/v1/image/assets/TEMP/b37aa6d1c6cbc969bfe2b07a8b3ddc5dc6d58170?width=60"
+            alt="User avatar"
+            className="w-full h-full object-cover"
+          />
         </div>
       </div>
     </header>
@@ -197,69 +230,62 @@ function DevicesTopNav() {
 }
 
 /* ── Page ────────────────────────────────────────────────── */
+import { useDevices } from "@/app/context/DeviceContext";
+
+/* ... (Icons remain same) ... */
+
 export default function DevicesPage() {
-  const [roomData, setRoomData] = useState(INITIAL_ROOMS);
+  const { deviceStates, updateDeviceState } = useDevices();
+  const [showNotifications, setShowNotifications] = useState(true);
+  const lastActionTime = useRef(0);
 
-  useEffect(() => {
-    const ws = new WebSocketClient(1, (message) => {
-      if (message.type === "SENSOR_UPDATE") {
-        setRoomData(prev => prev.map(room => ({
-          ...room,
-          devices: room.devices.map(device => {
-            const isPrimary = device.feedName === message.feed_name;
-            const isAdditional = device.additionalFeeds?.includes(message.feed_name);
+  // Map global context state to our room data structure
+  const roomData = INITIAL_ROOMS.map(room => ({
+    ...room,
+    devices: room.devices.map(device => {
+      const globalValue = deviceStates[device.feedName || ""];
+      const additionalValue1 = device.additionalFeeds?.[0] ? deviceStates[device.additionalFeeds[0]] : null;
+      
+      let updatedDevice = { ...device };
 
-            if (isPrimary || isAdditional) {
-              if (message.feed_name === "dadn.led-state") {
-                const isActivated = message.value === "1";
-                return { ...device, isActive: isActivated, status: isActivated ? "on" : "off" };
-              }
-              
-              if (message.feed_name.includes("temperature") || message.feed_name.includes("humidity")) {
-                const currentTemp = message.feed_name.includes("temperature") ? message.value : (device.subtitle?.match(/TEMP: ([\d.]+)/)?.[1] || "--");
-                const currentHumid = message.feed_name.includes("humidity") ? message.value : (device.subtitle?.match(/HUM: ([\d.]+)/)?.[1] || "--");
-                return { ...device, subtitle: `TEMP: ${currentTemp}°C  HUM: ${currentHumid}%` };
-              }
-            }
-            return device;
-          })
-        })));
+      if (device.feedName === "dadn.led-state") {
+        const isActivated = globalValue === "1";
+        const brightnessValue = deviceStates["dadn.led-sate"] || "85";
+        updatedDevice.isActive = isActivated;
+        updatedDevice.status = isActivated ? "on" : "off";
+        if (isActivated) {
+          updatedDevice.subtitle = `${brightnessValue}% intensity`;
+        } else {
+          updatedDevice.subtitle = "Off";
+        }
       }
-    });
-    ws.connect();
-    return () => ws.disconnect();
-  }, []);
+
+      if (device.feedName?.includes("temperature")) {
+        const currentTemp = globalValue || "--";
+        const currentHumid = additionalValue1 || "--";
+        updatedDevice.subtitle = `TEMP: ${currentTemp}°C  HUM: ${currentHumid}%`;
+      }
+
+      return updatedDevice;
+    })
+  }));
 
   const handleDeviceToggle = async (deviceId: string, nextState: boolean) => {
+    lastActionTime.current = Date.now();
     let targetFeed = "";
-    roomData.forEach(r => r.devices.forEach(d => {
+    INITIAL_ROOMS.forEach(r => r.devices.forEach(d => {
       if (d.id === deviceId) targetFeed = d.feedName || "";
     }));
 
-    // Local optimistic update
-    setRoomData(prev => prev.map(room => ({
-      ...room,
-      devices: room.devices.map(d => d.id === deviceId ? { ...d, isActive: nextState, status: nextState ? "on" : "off" } : d)
-    })));
-
     if (targetFeed) {
       try {
-        await deviceService.control({
-          home_id: 1,
-          feed_name: targetFeed,
-          value: nextState ? "1" : "0"
-        });
+        const valueToSend = nextState ? "1" : "0";
+        await updateDeviceState(targetFeed, valueToSend);
       } catch (error) {
         console.error("Control failed:", error);
-        // Revert local state on error
-        setRoomData(prev => prev.map(room => ({
-          ...room,
-          devices: room.devices.map(d => d.id === deviceId ? { ...d, isActive: !nextState, status: !nextState ? "on" : "off" } : d)
-        })));
       }
     }
   };
-
   const connected = roomData.reduce((a, r) => a + r.devices.filter(d => d.status !== "off").length, 0);
   const offline = roomData.reduce((a, r) => a + r.devices.filter(d => d.status === "off").length, 0);
 
@@ -268,84 +294,94 @@ export default function DevicesPage() {
       <Sidebar />
 
       <div className="flex flex-col flex-1 min-w-0 ml-20">
-        <DevicesTopNav />
+        <DevicesTopNav 
+          showNotifications={showNotifications} 
+          onToggleNotifications={() => setShowNotifications(!showNotifications)}
+        />
 
-        <main className="flex-1 mt-14 overflow-y-auto px-8 py-8 scrollbar-hide">
-          {/* Page Header */}
-          <div className="flex items-start justify-between mb-8">
-            <div>
-              <h1 className="font-manrope font-extrabold text-4xl text-white tracking-tight">
-                My Devices
-              </h1>
-              <p className="font-jakarta text-sm mt-1" style={{ color: "#ADAAAA" }}>
-                <span className="text-white font-semibold">{connected} Connected</span>
-                {" • "}
-                <span style={{ color: "#D53D18" }}>{offline} Offline</span>
-              </p>
-            </div>
-
-            {/* Air Quality pill */}
-            <div
-              className="flex items-center gap-3 px-4 py-2.5 rounded-2xl"
-              style={{ background: "#1A1A1A" }}
-            >
-              <div className="text-right">
-                <p className="font-jakarta text-[9px] uppercase tracking-widest text-[#ADAAAA]">
-                  Air Quality
+        <main className="flex flex-1 mt-16 overflow-hidden">
+          {/* Main Scrollable Content */}
+          <div className="flex-1 overflow-y-auto px-8 py-8 scrollbar-hide transition-all duration-300">
+            {/* Page Header */}
+            <div className="flex items-start justify-between mb-8">
+              <div>
+                <h1 className="font-manrope font-extrabold text-4xl text-white tracking-tight">
+                  My Devices
+                </h1>
+                <p className="font-jakarta text-sm mt-1" style={{ color: "#ADAAAA" }}>
+                  <span className="text-white font-semibold">{connected} Connected</span>
+                  {" • "}
+                  <span style={{ color: "#D53D18" }}>{offline} Offline</span>
                 </p>
-                <p className="font-manrope font-bold text-sm text-white">Excellent</p>
               </div>
+
+              {/* Air Quality pill */}
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ background: "#ebffe7", boxShadow: "0 0 12px 0 rgba(235,255,231,0.3)" }}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl"
+                style={{ background: "#1A1A1A" }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="#2d6a4f"/>
-                </svg>
+                <div className="text-right">
+                  <p className="font-jakarta text-[9px] uppercase tracking-widest text-[#ADAAAA]">
+                    Air Quality
+                  </p>
+                  <p className="font-manrope font-bold text-sm text-white">Excellent</p>
+                </div>
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: "#ebffe7", boxShadow: "0 0 12px 0 rgba(235,255,231,0.3)" }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="#2d6a4f"/>
+                  </svg>
+                </div>
               </div>
+            </div>
+
+            {/* Rooms */}
+            <div className="space-y-10">
+              {(() => {
+                // Calculate max columns based on the room with most devices
+                const maxCols = Math.max(...roomData.map(r => r.devices.length + 1));
+                
+                return roomData.map((room) => (
+                  <section key={room.name}>
+                    <h2 className="font-manrope font-bold text-base text-white mb-4">
+                      {room.name}
+                    </h2>
+    
+                    <div
+                      className="grid gap-4"
+                      style={{
+                        gridTemplateColumns: `repeat(${maxCols}, 1fr)`,
+                      }}
+                    >
+                      {room.devices.map((device) => (
+                        <DeviceCard 
+                          key={device.id} 
+                          device={device} 
+                          onToggle={(next) => handleDeviceToggle(device.id, next)} 
+                        />
+                      ))}
+                      <AddDeviceCard />
+                    </div>
+                  </section>
+                ));
+              })()}
             </div>
           </div>
 
-          {/* Rooms */}
-          <div className="space-y-10">
-            {roomData.map((room) => (
-              <section key={room.name}>
-                <h2 className="font-manrope font-bold text-base text-white mb-4">
-                  {room.name}
-                </h2>
-
-                <div
-                  className="grid gap-4"
-                  style={{
-                    gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-                  }}
-                >
-                  {room.devices.map((device) => (
-                    <DeviceCard 
-                      key={device.id} 
-                      device={device} 
-                      onToggle={(next) => handleDeviceToggle(device.id, next)} 
-                    />
-                  ))}
-                  <AddDeviceCard />
-                </div>
-              </section>
-            ))}
-          </div>
-
-          {/* ... (Floating add button stays same) ... */}
-          <button
-            className="fixed bottom-8 right-8 w-12 h-12 rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-110 active:scale-95 z-20"
+          {/* Right Sidebar - Recent Activity (toggleable) */}
+          <div
+            className="hidden xl:flex flex-col overflow-hidden transition-all duration-300 ease-in-out"
             style={{
-              background: "linear-gradient(135deg, #FDD34D 0%, #E8AA00 100%)",
-              boxShadow: "0 0 24px 0 rgba(253,211,77,0.35)",
+              width: showNotifications ? "24rem" : "0px",
+              opacity: showNotifications ? 1 : 0,
             }}
-            aria-label="Add device"
           >
-            <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
-              <path d="M6 6V0H8V6H14V8H8V14H6V8H0V6H6Z" fill="#5C4900"/>
-            </svg>
-          </button>
+            <div className="w-96 h-full p-4 md:p-8 sticky top-0 shrink-0">
+              <RecentActivity />
+            </div>
+          </div>
         </main>
       </div>
     </div>
