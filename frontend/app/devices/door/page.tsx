@@ -3,10 +3,24 @@
 import { useState } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import LightTopNav from "@/components/dashboard/LightTopNav";
+import { 
+  ChevronLeft, 
+  Search, 
+  Video, 
+  Lock, 
+  Unlock, 
+  AlertTriangle, 
+  UserCheck, 
+  Clock, 
+  Settings,
+  Shield
+} from "lucide-react";
+import Link from "next/link";
 
 export default function SmartDoorPage() {
-  const [isLocked, setIsLocked] = useState(true);
+  const [isLocked, setIsLocked] = useState(false);
   const [showRightPanel, setShowRightPanel] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   return (
     <div className="flex min-h-screen bg-[#0E0E0E] text-white font-sans overflow-hidden">
@@ -19,54 +33,185 @@ export default function SmartDoorPage() {
         />
 
         <main className="flex-1 mt-14 overflow-hidden flex flex-row">
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center transition-all duration-300">
-             <div className="mb-10">
-                <h3 className="font-jakarta text-[10px] uppercase tracking-widest text-[#ADAAAA] mb-2">Security Status</h3>
-                <h1 className="font-manrope font-extrabold text-4xl text-white tracking-tight">Main Entrance</h1>
-             </div>
-             
-             {/* Simple Lock Placeholder */}
-             <div 
-               className="w-64 h-64 rounded-full flex items-center justify-center cursor-pointer transition-all duration-500"
-               style={{ 
-                 background: isLocked ? "rgba(213,61,24,0.1)" : "rgba(45,106,79,0.1)",
-                 border: isLocked ? "2px solid #D53D18" : "2px solid #2d6a4f",
-                 boxShadow: isLocked ? "0 0 40px rgba(213,61,24,0.2)" : "0 0 40px rgba(45,106,79,0.2)"
-               }}
-               onClick={() => setIsLocked(!isLocked)}
-             >
-                <div style={{ color: isLocked ? "#D53D18" : "#2d6a4f" }}>
-                   {isLocked ? (
-                     <svg width="60" height="80" viewBox="0 0 16 20" fill="none"><path d="M2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 19.0208 0 18.55 0 18V8C0 7.45 0.195833 6.97917 0.5875 6.5875C0.979167 6.19583 1.45 6 2 6H3V4C3 2.9 3.39167 1.95833 4.175 1.175C4.95833 0.391667 5.9 0 7 0H9C10.1 0 11.0417 0.391667 11.825 1.175C12.6083 1.95833 13 2.9 13 4V6H14C14.55 6 15.0208 6.19583 15.4125 6.5875C15.8042 6.97917 16 7.45 16 8V18C16 18.55 15.8042 19.0208 15.4125 19.4125C15.0208 19.8042 14.55 20 14 20H8ZM5 6H11V4C11 3.45 10.8042 2.97917 10.4125 2.5875C10.0208 2.19583 9.55 2 9 2H7C6.45 2 5.97917 2.19583 5.5875 2.5875C5.19583 2.97917 5 3.45 5 4V6Z" fill="currentColor"/></svg>
-                   ) : (
-                     <svg width="60" height="80" viewBox="0 0 16 20" fill="none"><path d="M2 20C1.45 20 0.979167 19.8042 0.5875 19.4125C0.195833 17.0208 0 16.55 0 16V8C0 7.45 0.195833 6.97917 0.5875 6.5875C0.979167 6.19583 1.45 6 2 6H11V4C11 3.45 10.85 2.95 10.45 2.55C10.05 2.15 9.55 1.95 9 1.95H7C6.45 1.95 5.95 2.15 5.55 2.55C5.15 2.95 4.95 3.45 4.95 4V6H2.95V4C2.95 2.85 3.35 1.9 4.15 1.15C4.95 0.35 5.9  -0.05 7 -0.05H9C10.1 -0.05 11.05 0.35 11.85 1.15C12.65 1.9 13.05 2.85 13.05 4V6H14C14.55 6 15.0208 6.19583 15.4125 6.5875C15.8042 6.97917 16 7.45 16 8V16C16 16.55 15.8042 17.0208 15.4125 17.4125C15.0208 17.8042 14.55 18 14 18H2V20ZM8 14C8.55 14 9.02083 13.8042 9.4125 13.4125C9.80417 13.0208 10 12.55 10 12C10 11.45 9.80417 10.9792 9.4125 10.5875C9.02083 10.1958 8.55 10 8 10C7.45 10 6.97917 10.1958 6.5875 10.5875C6.19583 10.9792 6 11.45 6 12C6 12.55 6.19583 13.0208 6.5875 13.4125C6.97917 14.8042 7.45 14 8 14Z" fill="currentColor"/></svg>
-                   )}
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col p-8 overflow-y-auto transition-all duration-300">
+            
+            {/* Breadcrumb */}
+            <div className="flex items-center text-[#ADAAAA] text-sm mb-8">
+              <Link href="/devices" className="flex items-center hover:text-white transition-colors">
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Devices
+              </Link>
+              <span className="mx-2">/</span>
+              <span>Bedroom</span>
+              <span className="mx-2">/</span>
+              <span className="text-white font-medium">Front door</span>
+            </div>
+
+            {/* Camera Feed Section */}
+            <div className="bg-[#121212] border border-[#262626] rounded-2xl overflow-hidden mb-8 relative">
+              <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full flex items-center text-xs font-semibold text-green-400 border border-green-500/20">
+                <Shield className="w-3 h-3 mr-2" />
+                ENCRYPTED
+              </div>
+              
+              <div className="h-[360px] flex flex-col items-center justify-center bg-gradient-to-b from-[#1A1A1A] to-[#0E0E0E]">
+                <div className="w-20 h-20 bg-[#262626] rounded-full flex items-center justify-center mb-6">
+                  <Video className="w-10 h-10 text-[#ADAAAA]" />
                 </div>
-             </div>
-             
-             <p className="mt-8 font-jakarta text-sm text-[#ADAAAA]">
-                Tap to {isLocked ? "Unlock" : "Lock"} Entrance
-             </p>
+                <h2 className="text-xl font-bold text-white mb-2">Turn on your camera in Main door</h2>
+                <p className="text-[#ADAAAA] text-sm text-center max-w-md mb-8">
+                  Security feed is currently encrypted and in standby mode.
+                </p>
+                <button className="bg-white text-black hover:bg-gray-200 px-6 py-3 rounded-full font-semibold transition-colors flex items-center">
+                  <Video className="w-4 h-4 mr-2" />
+                  Activate Live Feed
+                </button>
+              </div>
+            </div>
+
+            {/* Lock Status Section */}
+            <div className="bg-[#121212] border border-[#262626] rounded-2xl p-8 flex items-center justify-between">
+              <div>
+                <p className="text-[#ADAAAA] text-xs font-bold uppercase tracking-wider mb-2">Status</p>
+                <h2 className="text-3xl font-bold text-white">
+                  Your door is {isLocked ? "locked" : "unlocked"}
+                </h2>
+              </div>
+              <div className="flex bg-[#1A1A1A] p-1 rounded-xl border border-[#262626]">
+                <button
+                  onClick={() => setIsLocked(false)}
+                  className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all ${
+                    !isLocked 
+                      ? "bg-white text-black shadow-sm" 
+                      : "text-[#ADAAAA] hover:text-white"
+                  }`}
+                >
+                  <Unlock className="w-4 h-4 mr-2" />
+                  Unlock
+                </button>
+                <button
+                  onClick={() => setIsLocked(true)}
+                  className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all ${
+                    isLocked 
+                      ? "bg-white text-black shadow-sm" 
+                      : "text-[#ADAAAA] hover:text-white"
+                  }`}
+                >
+                  <Lock className="w-4 h-4 mr-2" />
+                  Lock
+                </button>
+              </div>
+            </div>
           </div>
 
+          {/* Right Panel - Access Log */}
           <div
-            className="flex flex-col overflow-hidden transition-all duration-300 ease-in-out shrink-0"
+            className="flex flex-col overflow-hidden transition-all duration-300 ease-in-out shrink-0 border-l border-[#262626] bg-[#0A0A0A]"
             style={{
-              width: showRightPanel ? "340px" : "0px",
+              width: showRightPanel ? "400px" : "0px",
               opacity: showRightPanel ? 1 : 0,
-              background: "#121212",
-              borderLeft: showRightPanel ? "1px solid #262626" : "none"
             }}
           >
-            <aside className="w-[340px] h-full p-8 flex flex-col gap-10">
-               <h2 className="font-manrope font-bold text-lg text-white">Security History</h2>
-               <div className="flex flex-col gap-4">
-                  <div className="p-4 rounded-xl bg-[#1A1A1A] border border-[#262626]">
-                     <p className="text-[10px] text-[#ADAAAA] uppercase">Last Action</p>
-                     <p className="text-sm font-bold text-white mt-1">Locked by User at 10:45 PM</p>
+            <div className="p-6 h-full flex flex-col">
+              <h2 className="font-manrope font-bold text-xl text-white mb-6">Access log</h2>
+              
+              {/* Search */}
+              <div className="relative mb-6">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#ADAAAA] w-4 h-4" />
+                <input 
+                  type="text" 
+                  placeholder="SEARCH..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#1A1A1A] border border-[#262626] text-white text-sm rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-white transition-colors"
+                />
+              </div>
+
+              {/* Log List */}
+              <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar">
+                
+                {/* Item 1: Unknown Alert */}
+                <div className="flex gap-4">
+                  <div className="mt-1 bg-red-500/20 p-2 rounded-full h-fit text-red-500">
+                    <AlertTriangle className="w-5 h-5" />
                   </div>
-               </div>
-            </aside>
+                  <div className="flex-1">
+                    <h4 className="text-white font-semibold">Unknown access attempt</h4>
+                    <p className="text-xs text-[#ADAAAA] mt-1">2026-03-19 UNKNOWN_ALERT.jpg</p>
+                    <div className="flex items-center text-xs text-[#5E5E5E] mt-2">
+                      <Clock className="w-3 h-3 mr-1" />
+                      14:45 • ENTRYWAY CAM
+                    </div>
+                  </div>
+                </div>
+
+                {/* Item 2: Michael */}
+                <div className="flex gap-4">
+                  <div className="mt-1 bg-blue-500/20 p-2 rounded-full h-fit text-blue-500">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-white font-semibold">Door unlocked by Michael</h4>
+                    <p className="text-xs text-[#ADAAAA] mt-1">2026-03-19 MICHAEL_AUTH.jpg</p>
+                    <div className="flex items-center text-xs text-[#5E5E5E] mt-2">
+                      <Clock className="w-3 h-3 mr-1" />
+                      12:30 • VERIFIED PIN
+                    </div>
+                  </div>
+                </div>
+
+                {/* Item 3: Auto-lock */}
+                <div className="flex gap-4">
+                  <div className="mt-1 bg-green-500/20 p-2 rounded-full h-fit text-green-500">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-white font-semibold">Auto-lock engaged</h4>
+                    <p className="text-xs text-[#ADAAAA] mt-1">SYSTEM EVENT_092.log</p>
+                    <div className="flex items-center text-xs text-[#5E5E5E] mt-2">
+                      <Clock className="w-3 h-3 mr-1" />
+                      09:15 • TIMER EXPIRY
+                    </div>
+                  </div>
+                </div>
+
+                {/* Item 4: Sarah */}
+                <div className="flex gap-4">
+                  <div className="mt-1 bg-purple-500/20 p-2 rounded-full h-fit text-purple-500">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-white font-semibold">Door unlocked by Sarah</h4>
+                    <p className="text-xs text-[#ADAAAA] mt-1">2026-03-19_SARAH_AUTH.jpg</p>
+                    <div className="flex items-center text-xs text-[#5E5E5E] mt-2">
+                      <Clock className="w-3 h-3 mr-1" />
+                      08:45 • FACEID VERIFIED
+                    </div>
+                  </div>
+                </div>
+
+                {/* Item 5: Maintenance */}
+                <div className="flex gap-4 opacity-60">
+                  <div className="mt-1 bg-gray-500/20 p-2 rounded-full h-fit text-gray-400">
+                    <Settings className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-white font-semibold">Maintenance Mode Disengaged</h4>
+                    <p className="text-xs text-[#ADAAAA] mt-1">2026-03-18 SYSTEM_HEALTH.jpg</p>
+                    <div className="flex items-center text-xs text-[#5E5E5E] mt-2">
+                      <Clock className="w-3 h-3 mr-1" />
+                      YESTERDAY • REMOTE
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              <button className="w-full mt-4 py-3 border border-[#262626] text-[#ADAAAA] hover:text-white hover:bg-[#1A1A1A] rounded-xl font-medium transition-colors">
+                View Full History +
+              </button>
+            </div>
           </div>
         </main>
       </div>
