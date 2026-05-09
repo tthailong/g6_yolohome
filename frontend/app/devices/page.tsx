@@ -7,7 +7,7 @@ import type { DeviceCardData } from "@/components/dashboard/DeviceCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import { WebSocketClient } from "@/lib/api/socket";
 import { deviceService } from "@/lib/api/devices";
-import  { useDevices }  from "@/app/context/DeviceContext";
+import { useDevices } from "@/app/context/DeviceContext";
 
 /* ── Icons ───────────────────────────────────────────────── */
 const LightIcon = () => (
@@ -148,7 +148,6 @@ const INITIAL_ROOMS: { name: string; devices: (DeviceCardData & { feedName?: str
 ];
 
 /* ── Top Nav for Devices ─────────────────────────────────── */
-/* ── Top Nav for Devices ─────────────────────────────────── */
 function DevicesTopNav({ 
   showNotifications, 
   onToggleNotifications 
@@ -229,10 +228,6 @@ function DevicesTopNav({
   );
 }
 
-/* ── Page ────────────────────────────────────────────────── */
-import { useDevices } from "@/app/context/DeviceContext";
-
-/* ... (Icons remain same) ... */
 
 export default function DevicesPage() {
   const { deviceStates, updateDeviceState } = useDevices();
