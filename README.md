@@ -73,8 +73,9 @@ AUTH_ALGORITHM=HS256
 # Database Configuration
 DATABASE_URL=mysql+pymysql://root:password@localhost:3306/g6yolohome
 
-# API & Frontend URLs
-API_URL=http://localhost:3000
+# Adafruit IO Credentials
+ADAFRUIT_IO_USERNAME=YOUR_ADAFRUIT_IO_USERNAME
+ADAFRUIT_IO_KEY=YOUR_ADAFRUIT_IO_KEY
 ```
 
 ### Development
