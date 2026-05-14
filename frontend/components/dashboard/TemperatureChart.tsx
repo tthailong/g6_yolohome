@@ -51,11 +51,14 @@ function ViewToggle({
 
 const generatePath = (data: number[], height: number, max: number) => {
   if (data.length === 0) return "";
+  const safeMax = max || 1; // Prevent division by zero
   // Each index represents 3 minutes. Total day is 1440 minutes.
   return data.map((val, i) => {
     const totalMins = i * 3;
     const x = (totalMins / 1440) * 812;
-    const y = height - (val / max) * height;
+    // Ensure val is numeric and not NaN
+    const safeVal = isNaN(val) ? 0 : val;
+    const y = height - (safeVal / safeMax) * height;
     return `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
   }).join(" ");
 };
@@ -77,6 +80,7 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
   const [containerW, setContainerW] = useState(0);
 
   useEffect(() => {
+    setHistory([]); // Clear history when tab or date changes to avoid showing wrong data
     const fetchHistory = async () => {
       if (!selectedDate || !selectedHomeId) return;
       setLoading(true);
@@ -87,7 +91,9 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
         
         if (!sensor) {
           console.warn(`No sensor found for type: ${activeTab}`);
-          setHistory([]);
+          // Don't clear history immediately if it already has data, 
+          // as this might be a temporary API glitch
+          setHistory(prev => prev.length > 0 ? prev : []);
           setLoading(false);
           return;
         }
@@ -99,7 +105,9 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
         const dateStr = `${year}-${month}-${day}`;
         
         const data = await dashboardService.getHistory(sensor.sensor_id, dateStr);
-        setHistory(data);
+        if (Array.isArray(data)) {
+          setHistory(data);
+        }
       } catch (error) {
         console.error("Failed to fetch history:", error);
       } finally {
@@ -129,13 +137,20 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
   const startTs = startOfDay.getTime();
 
   history.forEach(d => {
+    if (!d || !d.created_at || d.value === undefined || d.value === null) return;
+    
     const dTs = new Date(d.created_at).getTime();
+    if (isNaN(dTs)) return;
+    
     const diffMins = (dTs - startTs) / (1000 * 60);
     const index = Math.floor(diffMins / 3);
     
     if (index >= 0 && index < 480) {
-      chartData[index] += parseFloat(d.value);
-      counts[index]++;
+      const val = parseFloat(d.value);
+      if (!isNaN(val)) {
+        chartData[index] += val;
+        counts[index]++;
+      }
     }
   });
 
@@ -143,6 +158,11 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
   for (let i = 0; i < 480; i++) {
     if (counts[i] > 0) {
       chartData[i] = chartData[i] / counts[i];
+    } else {
+      // If no data for this slot, we might want to use the previous value 
+      // or a placeholder, but for now we keep it 0 as initialized.
+      // But we MUST ensure it's not NaN.
+      if (isNaN(chartData[i])) chartData[i] = 0;
     }
   }
 
@@ -232,7 +252,7 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
                   />
                 ))}
 
-                {!loading && (
+                {chartPath && (
                   <path
                     key={`${activeTab}-${zoom}-${selectedDate.getTime()}`}
                     d={chartPath}
@@ -243,12 +263,20 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
                     style={{
                       strokeDasharray: "none",
                       strokeDashoffset: 0,
+                      opacity: loading ? 0.6 : 1,
+                      transition: "opacity 0.3s ease"
                     }}
                   />
                 )}
 
-                {chartData[chartData.length - 1] > 0 && (
-                  <rect x="804" y={256 - (chartData[chartData.length - 1]/(isTemp?50:100))*256 - 5} width="8" height="10" fill="#FDD34D" />
+                {chartData[chartData.length - 1] > 0 && !isNaN(chartData[chartData.length - 1]) && (
+                  <rect 
+                    x="804" 
+                    y={256 - (chartData[chartData.length - 1]/(isTemp?50:100))*256 - 5} 
+                    width="8" 
+                    height="10" 
+                    fill="#FDD34D" 
+                  />
                 )}
               </g>
             </svg>

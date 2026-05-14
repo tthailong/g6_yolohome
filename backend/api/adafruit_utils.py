@@ -4,9 +4,14 @@ from typing import List, Dict, Any
 from datetime import datetime
 
 class AdafruitIOClient:
-    def __init__(self, username: str, key: str):
-        self.username = username.strip() if username else ""
-        self.key = key.strip() if key else ""
+    def __init__(self, username: str = None, key: str = None):
+        # Fallback to environment variables if not provided or set to placeholders
+        env_username = os.getenv("ADAFRUIT_IO_USERNAME")
+        env_key = os.getenv("ADAFRUIT_IO_KEY")
+
+        self.username = username.strip() if username and username != "YOUR_ADAFRUIT_IO_USERNAME" else (env_username or "")
+        self.key = key.strip() if key and key != "YOUR_ADAFRUIT_IO_KEY" else (env_key or "")
+        
         self.base_url = f"https://io.adafruit.com/api/v2/{self.username}"
         self.headers = {"X-AIO-Key": self.key}
 

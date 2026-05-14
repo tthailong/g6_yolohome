@@ -3,6 +3,7 @@ import json
 import asyncio
 import threading
 import os
+import time
 from socket_manager import manager as socket_manager
 from sqlalchemy.orm import Session
 import models
@@ -16,12 +17,19 @@ def set_main_loop(loop):
     main_loop = loop
 
 class AdafruitMQTTClient:
-    def __init__(self, home_id: int, username: str, key: str):
+    def __init__(self, home_id: int, username: str = None, key: str = None):
         self.home_id = home_id
-        self.username = username.strip() if username else ""
-        self.key = key.strip() if key else ""
-        # Use a unique client ID that includes process ID to avoid clashes with orphaned processes
-        client_id = f"G6YoloHome_{home_id}_{os.getpid()}"
+        
+        # Fallback to environment variables if not provided or set to placeholders
+        env_username = os.getenv("ADAFRUIT_IO_USERNAME")
+        env_key = os.getenv("ADAFRUIT_IO_KEY")
+
+        self.username = username.strip() if username and username != "YOUR_ADAFRUIT_IO_USERNAME" else (env_username or "")
+        self.key = key.strip() if key and key != "YOUR_ADAFRUIT_IO_KEY" else (env_key or "")
+
+        # Use a stable client ID for the home to ensure new connections replace old ones
+        # This prevents hitting Adafruit IO's 2-connection limit during reloads.
+        client_id = f"G6YoloHome_Home_{home_id}"
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
         self.client.username_pw_set(self.username, self.key)
         self.client.on_connect = self.on_connect
@@ -35,6 +43,8 @@ class AdafruitMQTTClient:
                 topic = f"{self.username}/feeds/{feed}"
                 client.subscribe(topic)
                 print(f"DEBUG: Subscribed to {topic}")
+                # Small delay to avoid burst limits
+                time.sleep(0.1)
         else:
             print(f"DEBUG: Failed to connect to Adafruit MQTT for Home {self.home_id}, rc: {rc}")
 
@@ -65,7 +75,8 @@ class AdafruitMQTTClient:
     def start(self, feeds: list):
         self.feeds = feeds
         # Use connect_async to avoid blocking the FastAPI event loop
-        self.client.connect_async("io.adafruit.com", 1883, 60)
+        # Increased keepalive to 120 for stability
+        self.client.connect_async("io.adafruit.com", 1883, 120)
         self.client.loop_start()
 
     def stop(self):
@@ -86,22 +97,23 @@ def ensure_mqtt_for_home(home_id: int, db: Session):
             return active_mqtt_clients[home_id]
         
         home = db.query(models.Home).filter(models.Home.id == home_id).first()
-    if not home:
-        print(f"DEBUG: Home {home_id} not found for MQTT initialization")
-        return None
-        
-    sensors = db.query(models.Sensor).join(models.Device).filter(models.Device.home_id == home.id).all()
-    if not sensors:
-        print(f"DEBUG: No sensors found for Home {home.name}, skipping MQTT")
-        return None
-        
-    feeds = [s.feed_name for s in sensors]
-    client = AdafruitMQTTClient(home.id, home.adafruitiouser, home.adafruitiokey)
-    client.start(feeds)
-    active_mqtt_clients[home.id] = client
-    print(f"DEBUG: Initialized MQTT for Home {home.name} on-demand with feeds: {feeds}")
-    return client
+        if not home:
+            print(f"DEBUG: Home {home_id} not found for MQTT initialization")
+            return None
+            
+        sensors = db.query(models.Sensor).join(models.Device).filter(models.Device.home_id == home.id).all()
+        if not sensors:
+            print(f"DEBUG: No sensors found for Home {home.name}, skipping MQTT")
+            return None
+            
+        feeds = [s.feed_name for s in sensors]
+        client = AdafruitMQTTClient(home.id, home.adafruitiouser, home.adafruitiokey)
+        client.start(feeds)
+        active_mqtt_clients[home.id] = client
+        print(f"DEBUG: Initialized MQTT for Home {home.name} on-demand with feeds: {feeds}")
+        return client
 
 def stop_all_mqtt():
     for client in active_mqtt_clients.values():
         client.stop()
+    active_mqtt_clients.clear()

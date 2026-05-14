@@ -261,8 +261,8 @@ export default function DevicesPage() {
 
       if (device.feedName === "dadn.led-state") {
         const isActivated = globalValue === "1";
-        const rawBrightness = deviceStates["dadn.led-sate"] || "0.85";
-        const brightnessValue = Math.round(parseFloat(rawBrightness) * 100);
+        const rawBrightness = deviceStates["dadn.led-sate"] || "85";
+        const brightnessValue = Math.round(parseFloat(rawBrightness));
         
         updatedDevice.isActive = isActivated;
         updatedDevice.status = isActivated ? "on" : "off";
