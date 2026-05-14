@@ -6,16 +6,27 @@
 CREATE DATABASE IF NOT EXISTS g6yolohome;
 USE g6yolohome;
 
--- 2. Create Tables
+-- Disable foreign key checks for clean table drops and creation
+SET FOREIGN_KEY_CHECKS = 0;
 
-CREATE TABLE IF NOT EXISTS admin (
+-- 2. Drop Tables if they exist (Clean Start)
+DROP TABLE IF EXISTS sensors;
+DROP TABLE IF EXISTS devices;
+DROP TABLE IF EXISTS device_types;
+DROP TABLE IF EXISTS home;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS admin;
+
+-- 3. Create Tables
+
+CREATE TABLE admin (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     role ENUM('owner', 'member') NOT NULL DEFAULT 'member',
@@ -27,7 +38,7 @@ CREATE TABLE IF NOT EXISTS users (
     admin_id INT
 );
 
-CREATE TABLE IF NOT EXISTS home (
+CREATE TABLE home (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     adafruitiokey VARCHAR(255) NOT NULL,
@@ -36,14 +47,14 @@ CREATE TABLE IF NOT EXISTS home (
     owner_id INT
 );
 
-CREATE TABLE IF NOT EXISTS device_types (
+CREATE TABLE device_types (
     id INT AUTO_INCREMENT PRIMARY KEY,
     type_name VARCHAR(50) NOT NULL,
     icon_url VARCHAR(255),
     admin_id INT
 );
 
-CREATE TABLE IF NOT EXISTS devices (
+CREATE TABLE devices (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     device_type_id INT,
@@ -52,60 +63,52 @@ CREATE TABLE IF NOT EXISTS devices (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS sensors (
+CREATE TABLE sensors (
     id INT AUTO_INCREMENT PRIMARY KEY,
     device_id INT NOT NULL,
     sensor_type VARCHAR(50) NOT NULL, -- 'temperature', 'humidity', 'led', 'security', etc.
     feed_name VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_sensor_device FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. Add Foreign Key Constraints (Deferred)
+-- 4. Add Foreign Key Constraints
 
-ALTER TABLE users 
-    DROP FOREIGN KEY IF EXISTS fk_user_supervisor,
-    DROP FOREIGN KEY IF EXISTS fk_user_admin;
-    
 ALTER TABLE users
     ADD CONSTRAINT fk_user_supervisor FOREIGN KEY (supervisor_id) REFERENCES users(id),
     ADD CONSTRAINT fk_user_admin FOREIGN KEY (admin_id) REFERENCES admin(id);
 
-ALTER TABLE home 
-    DROP FOREIGN KEY IF EXISTS fk_home_owner;
-
 ALTER TABLE home
     ADD CONSTRAINT fk_home_owner FOREIGN KEY (owner_id) REFERENCES users(id);
 
-ALTER TABLE devices 
-    DROP FOREIGN KEY IF EXISTS fk_device_home,
-    DROP FOREIGN KEY IF EXISTS fk_device_type;
-
 ALTER TABLE devices
     ADD CONSTRAINT fk_device_home FOREIGN KEY (home_id) REFERENCES home(id) ON DELETE CASCADE,
-    ADD CONSTRAINT fk_device_type FOREIGN KEY (device_type_id) REFERENCES device_types(id);
-
-ALTER TABLE device_types
-    DROP FOREIGN KEY IF EXISTS fk_type_admin;
+    ADD CONSTRAINT fk_device_type FOREIGN KEY (device_type_id) REFERENCES device_types(id),
+    ADD CONSTRAINT fk_device_owner FOREIGN KEY (owner_id) REFERENCES users(id);
 
 ALTER TABLE device_types
     ADD CONSTRAINT fk_type_admin FOREIGN KEY (admin_id) REFERENCES admin(id);
 
+ALTER TABLE sensors
+    ADD CONSTRAINT fk_sensor_device FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE;
+
+-- Re-enable foreign key checks
+SET FOREIGN_KEY_CHECKS = 1;
+
 -- 4. Insert Initial Data
--- All passwords are set to 'password' hashed with bcrypt: $2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGGa31lW
+-- All passwords are set to 'password' hashed with bcrypt: $2b$12$Bqb2axk3PGOD6pJTmzM.8.cqgzrn24bitbj0edwfUjiOLdh9A.c4i
 
 -- 4.1 Admin Account
 INSERT IGNORE INTO admin (id, username, password) 
-VALUES (1, 'adminapp', '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGGa31lW');
+VALUES (1, 'adminapp', '$2b$12$Bqb2axk3PGOD6pJTmzM.8.cqgzrn24bitbj0edwfUjiOLdh9A.c4i');
 
 -- 4.2 Main User (Owner)
 INSERT IGNORE INTO users (id, username, role, email, phone, password, admin_id) 
-VALUES (1, 'hailong', 'owner', 'superlongblue@gmail.com', '0123456789', '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGGa31lW', 1);
+VALUES (1, 'hailong', 'owner', 'superlongblue@gmail.com', '0123456789', '$2b$12$Bqb2axk3PGOD6pJTmzM.8.cqgzrn24bitbj0edwfUjiOLdh9A.c4i', 1);
 
 -- 4.3 Default Home
 -- Note: User needs to update adafruit credentials here
 INSERT IGNORE INTO home (id, name, adafruitiokey, adafruitiouser, owner_id)
-VALUES (1, 'YoloHome Main', 'YOUR_ADAFRUIT_KEY', 'YOUR_ADAFRUIT_USER', 1);
+VALUES (1, 'newhome', 'YOUR_ADAFRUIT_IO_KEY', 'YOUR_ADAFRUIT_IO_USERNAME', 1);
 
 -- 4.4 Device Types
 INSERT IGNORE INTO device_types (id, type_name, icon_url, admin_id) VALUES 
@@ -124,5 +127,5 @@ INSERT IGNORE INTO sensors (id, device_id, sensor_type, feed_name) VALUES
 (1, 1, 'temperature', 'dadn.dht20-temperature'),
 (2, 1, 'humidity', 'dadn.dht20-humidity'),
 (3, 2, 'led', 'dadn.led-state'),
-(4, 3, 'security', 'dadn.security-alert'),
-(5, 3, 'earthquake', 'dadn.earthquake-sensor');
+(6, 2, 'brightness', 'dadn.led-sate'),
+(5, 3, 'earthquake', 'dadn.earthquake-detected');

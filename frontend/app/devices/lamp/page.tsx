@@ -31,8 +31,8 @@ export default function SmartLightPage() {
   const [showRightPanel, setShowRightPanel] = useState(true);
 
   const isOn = deviceStates["dadn.led-state"] === "1";
-  const rawBrightness = deviceStates["dadn.led-sate"] || "0.85";
-  const brightness = Math.round(parseFloat(rawBrightness) * 100);
+  const rawBrightness = deviceStates["dadn.led-sate"] || "85";
+  const brightness = Math.round(parseFloat(rawBrightness));
 
   const brightnessTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastActionTime = useRef(0);
@@ -44,7 +44,7 @@ export default function SmartLightPage() {
 
     brightnessTimerRef.current = setTimeout(async () => {
       try {
-        const normalizedValue = (value / 100).toFixed(2);
+        const normalizedValue = value;
         lastActionTime.current = Date.now();
         await updateDeviceState("dadn.led-sate", normalizedValue);
       } catch (error) {
