@@ -1,17 +1,19 @@
-"use client"
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Key, Lock, Zap, HelpCircle } from "lucide-react";
+import { ArrowLeft, Home as HomeIcon, Key, Server, Zap, Loader2 } from "lucide-react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { homeService } from "@/lib/api/homes";
 
 export default function CreateHome() {
   const router = useRouter();
-  const [homeName, setHomeName] = useState('');
-  const [aioKey, setAioKey] = useState('');
-  const [aioUser, setAioUser] = useState('');
+  const [homeName, setHomeName] = useState("");
+  const [aioKey, setAioKey] = useState("");
+  const [aioUser, setAioUser] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,111 +25,110 @@ export default function CreateHome() {
         adafruitiokey: aioKey,
         adafruitiouser: aioUser
       });
-      console.log('Sanctuary created successfully');
-      router.push('/homes');
+      router.push("/homes");
     } catch (error) {
-       console.error("Failed to create sanctuary", error);
+      console.error("Failed to create sanctuary:", error);
+      alert("Failed to create sanctuary. Please check your connection.");
     } finally {
-       setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#0E0E0E] to-[#111111] py-12 px-4 sm:px-6 lg:px-8 font-sans overflow-hidden relative">
+      <div className="min-h-screen bg-[#0E0E0E] text-white font-sans overflow-y-auto">
+        {/* Luminous Glow Effects */}
+        <div className="fixed top-[-200px] left-[10%] w-[500px] h-[400px] bg-[#FDD34D]/[0.05] blur-[60px] rounded-full pointer-events-none" />
         
-        {/* Glow Effects */}
-        <div className="absolute top-[-100px] left-[20%] w-[500px] h-[400px] bg-[#FDD34D]/[0.05] blur-[60px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-[-100px] right-[20%] w-[380px] h-[300px] bg-[#F5D1FB]/[0.03] blur-[50px] rounded-full pointer-events-none" />
+        <div className="max-w-3xl mx-auto w-full px-6 py-12 md:py-24 z-10 relative">
+          
+          <div className="flex items-center gap-4 mb-12">
+            <button 
+              onClick={() => router.back()}
+              className="p-2 hover:bg-[#1A1A1A] hover:text-white rounded-full transition-colors"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h1 className="text-3xl font-bold font-serif tracking-tight">Create Sanctuary</h1>
+          </div>
 
-        <div className="w-full max-w-md z-10">
-          <div className="bg-[#131313] border border-[#484847]/30 rounded-[32px] p-10 relative overflow-hidden shadow-2xl">
-            <div className="mb-10 text-center">
-              <h2 className="text-white font-serif text-3xl font-extrabold tracking-[-0.75px] mb-2">Create Sanctuary</h2>
-              <p className="text-[#ADAAAA] text-sm leading-relaxed">
-                 Configure your new automated environment with Adafruit IO integration.
-              </p>
+          <form onSubmit={handleSubmit} className="bg-[#131313] border border-[#484847] rounded-2xl p-6 md:p-10 space-y-10 shadow-2xl">
+            
+            {/* General Info */}
+            <div className="space-y-6">
+              <h2 className="text-lg font-bold flex items-center gap-2 border-b border-[#484847]/30 pb-3 font-serif">
+                <HomeIcon className="w-5 h-5 text-[#FDD34D]" />
+                General Information
+              </h2>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-[#ADAAAA]">Sanctuary Name</label>
+                <Input 
+                  value={homeName}
+                  onChange={(e) => setHomeName(e.target.value)}
+                  placeholder="e.g. Obsidian Heights"
+                  className="bg-[#0E0E0E] border-[#484847] text-white py-6 focus:border-[#FDD34D] transition-colors"
+                  required
+                />
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Server Config */}
+            <div className="space-y-6">
+              <h2 className="text-lg font-bold flex items-center gap-2 border-b border-[#484847]/30 pb-3 mt-8 font-serif">
+                <Server className="w-5 h-5 text-[#FDD34D]" />
+                Server Configuration (Adafruit IO)
+              </h2>
+              <p className="text-sm text-[#ADAAAA] leading-relaxed">
+                Provide your MQTT credentials to connect your new sanctuary to the cloud.
+              </p>
+              
               <div className="space-y-2">
-                <label className="block text-[#ADAAAA] text-[10px] font-bold uppercase tracking-[1.5px]">
-                  Home Name
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={homeName}
-                    onChange={(e) => setHomeName(e.target.value)}
-                    placeholder="e.g. Minimalist Loft"
-                    className="w-full bg-[#000000] border border-[#484847]/50 text-white placeholder-[#6B7280] rounded-xl py-4 px-5 focus:outline-none focus:ring-1 focus:ring-[#FDD34D] transition-colors"
-                    required
-                  />
-                </div>
+                <label className="text-xs font-bold uppercase tracking-wider text-[#ADAAAA]">Adafruit Username</label>
+                <Input 
+                  value={aioUser}
+                  onChange={(e) => setAioUser(e.target.value)}
+                  placeholder="Your username" 
+                  className="bg-[#0E0E0E] border-[#484847] text-white py-6 focus:border-[#FDD34D] transition-colors"
+                  required
+                />
               </div>
-
+              
               <div className="space-y-2">
-                <label className="block text-[#ADAAAA] text-[10px] font-bold uppercase tracking-[1.5px]">
-                  Adafruit IO Key
-                </label>
+                <label className="text-xs font-bold uppercase tracking-wider text-[#ADAAAA]">Adafruit IO Key</label>
                 <div className="relative">
-                  <input
-                    type="text"
+                  <Input 
+                    type="password"
                     value={aioKey}
                     onChange={(e) => setAioKey(e.target.value)}
-                    placeholder="aio_XXXX_XXXXXXXXXXX"
-                    className="w-full bg-[#000000] border border-[#484847]/50 text-white placeholder-[#6B7280] rounded-xl py-4 px-5 focus:outline-none focus:ring-1 focus:ring-[#FDD34D] transition-colors pr-12"
+                    placeholder="aio_..." 
+                    className="bg-[#0E0E0E] border-[#484847] text-white py-6 pr-12 focus:border-[#FDD34D] transition-colors"
                     required
                   />
-                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-[#ADAAAA]">
-                    <Key className="w-4 h-4" />
-                  </div>
+                  <Key className="absolute right-4 top-1/2 -translate-y-1/2 text-[#ADAAAA] w-5 h-5" />
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <label className="block text-[#ADAAAA] text-[10px] font-bold uppercase tracking-[1.5px]">
-                  Adafruit IO Username
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={aioUser}
-                    onChange={(e) => setAioUser(e.target.value)}
-                    placeholder="Your Adafruit IO Username"
-                    className="w-full bg-[#000000] border border-[#484847]/50  text-white placeholder-[#6B7280] rounded-xl py-4 px-5 focus:outline-none focus:ring-1 focus:ring-[#FDD34D] transition-colors pr-12"
-                    required
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-[#ADAAAA]">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-6">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-2 py-4 px-4 border border-transparent rounded-xl shadow-[0_10px_15px_-3px_rgba(253,211,77,0.1)] text-sm font-bold font-serif text-[#5C4900] bg-gradient-to-r from-[#FDD34D] to-[#e4b300] hover:from-[#ffe58f] hover:to-[#FDD34D] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FDD34D] focus:ring-offset-[#131313] transition-all cursor-pointer disabled:opacity-70"
-                >
-                  Create Sanctuary <Zap className="w-4 h-4 fill-[#5C4900]" />
-                </button>
-              </div>
-            </form>
-
-            <div className="mt-8 text-center border-t border-[#484847]/30 pt-6">
-               <Link href="#" className="inline-flex items-center gap-2 text-[#ADAAAA] text-xs hover:text-white transition-colors">
-                  <HelpCircle className="w-3 h-3" /> Need help connecting your devices?
-               </Link>
-            </div>
-            
-            <div className="mt-4 text-center">
-               <button onClick={() => router.back()} className="text-[#ADAAAA]/70 text-xs hover:text-[#ADAAAA] underline underline-offset-4 transition-colors focus:outline-none cursor-pointer">
-                  Cancel and go back
-               </button>
             </div>
 
-          </div>
+            {/* Actions */}
+            <div className="pt-8 flex justify-end gap-4 border-t border-[#484847]/30">
+              <button 
+                type="button"
+                onClick={() => router.back()}
+                className="px-8 py-2 text-[#ADAAAA] hover:text-white transition-colors text-sm font-bold uppercase tracking-wider"
+              >
+                Cancel
+              </button>
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-[#FDD34D] text-[#5C4900] hover:bg-[#e5bc3e] font-bold px-10 shadow-lg shadow-[#FDD34D]/10"
+              >
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2 fill-[#5C4900]" />}
+                Initialize Sanctuary
+              </Button>
+            </div>
+
+          </form>
         </div>
       </div>
     </ProtectedRoute>

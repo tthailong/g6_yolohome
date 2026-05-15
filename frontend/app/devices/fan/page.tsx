@@ -7,68 +7,71 @@ import LightTopNav from "@/components/dashboard/LightTopNav";
 import { useDevices } from "@/app/context/DeviceContext";
 
 /* ── Icons ───────────────────────────────────────────────────────── */
-const BulbIcon = () => (
-  <svg width="60" height="84" viewBox="0 0 24 34" fill="none">
-    <path d="M12 0C5.37258 0 0 5.37258 0 12C0 16.0353 2.01633 19.6053 5 21.6445V25C5 26.1046 5.89543 27 7 27H17C18.1046 27 19 26.1046 19 25V21.6445C21.9837 19.6053 24 16.0353 24 12C24 5.37258 18.6274 0 12 0ZM7 31H17V29H7V31ZM10 34H14V32H10V34Z" fill="currentColor"/>
+const FanIcon = ({ isOn }: { isOn: boolean }) => (
+  <svg 
+    width="80" height="80" viewBox="0 0 24 24" fill="none"
+    className={isOn ? "animate-spin-slow" : ""}
+    style={{ animationDuration: '1.5s' }}
+  >
+    <path d="M10.85 12c0-1.25-.11-2.43-.31-3.53C10.15 6.44 9.19 5 7.81 5c-1.52 0-2.75 2.1-2.75 4.69 0 2.14.85 3.93 2.1 4.51.52.24 1.14.3 1.76.3H10.85Z" fill="currentColor"/>
+    <path d="M12 10.85c1.25 0 2.43-.11 3.53-.31 2.03-.39 3.47-1.35 3.47-2.73 0-1.52-2.1-2.75-4.69-2.75-2.14 0-3.93.85-4.51 2.1-.24.52-.3 1.14-.3 1.76v1.93Z" fill="currentColor"/>
+    <path d="M13.15 12c0 1.25.11 2.43.31 3.53.39 2.03 1.35 3.47 2.73 3.47 1.52 0 2.75-2.1 2.75-4.69 0-2.14-.85-3.93-2.1-4.51-.52-.24-1.14-.3-1.76-.3h-1.93Z" fill="currentColor"/>
+    <path d="M12 13.15c-1.25 0-2.43.11-3.53.31-2.03.39-3.47 1.35-3.47 2.73 0 1.52 2.1 2.75 4.69 2.75 2.14 0 3.93-.85 4.51-2.1.24-.52.3-1.14.3-1.76v-1.93Z" fill="currentColor"/>
+    <circle cx="12" cy="12" r="2" fill="currentColor" />
   </svg>
 );
 
-const SunSmallIcon = () => (
+const SpeedLowIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-    <path d="M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM12 4V2H12.01V4H12ZM12 20V22H12.01V20H12ZM4 12H2V12.01H4V12ZM22 12H20V12.01H22V12ZM6.34 6.34L4.93 4.93L4.92 4.92L6.33 6.33L6.34 6.34ZM17.66 17.66L19.07 19.07L19.08 19.08L17.67 17.67L17.66 17.66ZM17.66 6.34L19.07 4.93L19.08 4.92L17.67 6.33L17.66 6.34ZM6.34 17.66L4.93 19.07L4.92 19.08L6.33 17.67L6.34 17.66Z" fill="#ADAAAA"/>
+    <path d="M13 2L3 14H12V22L22 10H13V2Z" stroke="#ADAAAA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
-const SunLargeIcon = () => (
+const SpeedHighIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <path d="M12 19C8.13401 19 5 15.866 5 12C5 8.13401 8.13401 5 12 5C15.866 5 19 8.13401 19 12C19 15.866 15.866 19 12 19ZM12 3V1H12.01V3H12ZM12 21V23H12.01V21H12ZM3 12H1V12.01H3V12ZM23 12H21V12.01H23V12ZM5.64 5.64L4.23 4.23L4.22 4.22L5.63 5.63L5.64 5.64ZM18.36 18.36L19.77 19.77L19.78 19.78L18.37 18.37L18.36 18.36ZM18.36 5.64L19.77 4.23L19.78 4.22L18.37 5.63L18.36 5.64ZM5.64 18.36L4.23 19.77L4.22 19.78L5.63 18.37L5.64 18.36Z" fill="#FDD34D"/>
+    <path d="M13 2L3 14H12V22L22 10H13V2Z" fill="#FDD34D" stroke="#FDD34D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
 /* ── Components ──────────────────────────────────────────────────── */
 
-export default function SmartLightPage() {
+export default function SmartFanPage() {
   const router = useRouter();
   const { deviceStates, updateDeviceState } = useDevices();
   const [showRightPanel, setShowRightPanel] = useState(true);
-  const [isFanAnimating, setIsFanAnimating] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
-  const isOn = deviceStates["dadn.led-state"] === "1";
-  const rawBrightness = deviceStates["dadn.led-sate"] || "85";
-  const brightness = Math.round(parseFloat(rawBrightness));
+  const isOn = deviceStates["dadn.fan-state"] === "1";
+  const rawSpeed = deviceStates["dadn.fan-speed"] || "50";
+  const speed = Math.round(parseFloat(rawSpeed));
 
-  const brightnessTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const speedTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastActionTime = useRef(0);
-  const prevFanStateRef = useRef<string | null>(null);
 
-  // Monitor fan state for sidebar animation
+  // Trigger temporary spin when turned on
   useEffect(() => {
-    const currentFanState = deviceStates["dadn.fan-state"];
-    if (currentFanState === "1" && prevFanStateRef.current !== "1") {
-      setIsFanAnimating(true);
-      const timer = setTimeout(() => setIsFanAnimating(false), 1500);
+    if (isOn) {
+      setIsAnimating(true);
+      const timer = setTimeout(() => {
+        setIsAnimating(false);
+      }, 1200); // Spin for 3 seconds
       return () => clearTimeout(timer);
+    } else {
+      setIsAnimating(false);
     }
-    
-    if (currentFanState === "0") {
-      setIsFanAnimating(false);
-    }
-    
-    prevFanStateRef.current = currentFanState;
-  }, [deviceStates["dadn.fan-state"]]);
+  }, [isOn]);
 
-  const handleBrightnessChange = (value: number) => {
-    if (brightnessTimerRef.current) {
-      clearTimeout(brightnessTimerRef.current);
+  const handleSpeedChange = (value: number) => {
+    if (speedTimerRef.current) {
+      clearTimeout(speedTimerRef.current);
     }
 
-    brightnessTimerRef.current = setTimeout(async () => {
+    speedTimerRef.current = setTimeout(async () => {
       try {
-        const normalizedValue = value;
         lastActionTime.current = Date.now();
-        await updateDeviceState("dadn.led-sate", normalizedValue);
+        await updateDeviceState("dadn.fan-speed", value);
       } catch (error) {
-        console.error("Failed to set brightness:", error);
+        console.error("Failed to set fan speed:", error);
       }
     }, 1000);
   };
@@ -78,9 +81,9 @@ export default function SmartLightPage() {
     lastActionTime.current = Date.now();
     try {
       const valueToSend = nextState ? "1" : "0";
-      await updateDeviceState("dadn.led-state", valueToSend);
+      await updateDeviceState("dadn.fan-state", valueToSend);
     } catch (error) {
-      console.error("Failed to control LED state:", error);
+      console.error("Failed to control fan state:", error);
     }
   };
 
@@ -92,11 +95,11 @@ export default function SmartLightPage() {
         <LightTopNav 
           showNotifications={false}
           onToggleNotifications={() => {}}
-          title="Main Chandelier"
+          title="Ceiling Fan Control"
         />
 
         <main className="flex-1 mt-14 overflow-hidden flex flex-row relative">
-          {/* Sidebar Toggle Button (Dedicated) */}
+          {/* Sidebar Toggle Button */}
           <button
             onClick={() => setShowRightPanel(!showRightPanel)}
             className="absolute top-1/2 -translate-y-1/2 right-0 z-20 w-8 h-12 flex items-center justify-center rounded-l-xl transition-all duration-300"
@@ -116,19 +119,19 @@ export default function SmartLightPage() {
             </svg>
           </button>
 
-          {/* ── Left Column: Main Light Control ── */}
+          {/* ── Left Column: Main Fan Control ── */}
           <div className="flex-1 overflow-y-auto px-8 py-8 md:py-12 flex flex-col items-center w-full transition-all duration-300 scrollbar-hide">
             
             {/* Header */}
             <div className="text-center mb-10 w-full relative">
               <h3 className="font-jakarta text-[10px] uppercase tracking-widest text-[#ADAAAA] mb-2">Device Status</h3>
-              <h1 className="font-manrope font-extrabold text-4xl text-white tracking-tight">Main Light</h1>
+              <h1 className="font-manrope font-extrabold text-4xl text-white tracking-tight">Ceiling Fan</h1>
             </div>
 
             {/* Central Graphic */}
             <div className="relative w-[340px] h-[340px] flex items-center justify-center mb-12 cursor-pointer transition-transform hover:scale-105 active:scale-95" onClick={handleToggle}>
               
-              {/* Outer faint rings */}
+              {/* Outer faint rings (Matching Lamp Page) */}
               <div
                 className="absolute inset-0 rounded-full transition-all duration-700"
                 style={{
@@ -147,7 +150,7 @@ export default function SmartLightPage() {
                 }}
               />
               
-              {/* Core Light Circle */}
+              {/* Core Fan Circle */}
               <div
                 className="relative w-[180px] h-[180px] rounded-full flex items-center justify-center transition-all duration-500 z-10"
                 style={{
@@ -156,89 +159,85 @@ export default function SmartLightPage() {
                 }}
               >
                 <div style={{ color: isOn ? "#5C4900" : "#ADAAAA" }}>
-                  <BulbIcon />
+                  <FanIcon isOn={isAnimating} />
                 </div>
               </div>
             </div>
 
-            {/* Brightness Pill */}
+            {/* Speed Pill */}
             <div className="px-5 py-2 rounded-2xl mb-12 border transition-all duration-300" style={{ background: "#1A1A1A", borderColor: isOn ? "rgba(253,211,77,0.3)" : "#484847" }}>
               <span className="font-jakarta font-bold text-sm" style={{ color: isOn ? "#FDD34D" : "#ADAAAA" }}>
-                {isOn ? `${brightness}% Brightness` : "Off"}
+                {isOn ? `${speed}% Speed` : "Off"}
               </span>
             </div>
 
             {/* Slider */}
             <div className="flex items-center gap-5 w-full max-w-[400px] mb-20 px-4">
-              <SunSmallIcon />
+              <SpeedLowIcon />
               <div className="relative flex-1 h-1.5 rounded-full" style={{ background: "#484847" }}>
                 <div
                   className="absolute top-0 left-0 h-full rounded-full transition-all duration-200"
-                  style={{ width: `${brightness}%`, background: isOn ? "#FDD34D" : "#888" }}
+                  style={{ width: `${speed}%`, background: isOn ? "#FDD34D" : "#888" }}
                 />
                 <input
                   type="range"
                   min="0"
                   max="100"
-                  value={brightness}
-                  onChange={(e) => handleBrightnessChange(parseInt(e.target.value))}
+                  value={speed}
+                  onChange={(e) => handleSpeedChange(parseInt(e.target.value))}
                   className="absolute inset-0 w-full opacity-0 cursor-pointer"
                 />
                 <div
                   className="absolute top-1/2 -mt-2.5 w-5 h-5 bg-white rounded-full shadow-lg pointer-events-none transition-all duration-200"
-                  style={{ left: `calc(${brightness}% - 10px)` }}
+                  style={{ left: `calc(${speed}% - 10px)` }}
                 />
               </div>
-              <SunLargeIcon />
+              <SpeedHighIcon />
             </div>
 
             {/* Automated Schedule */}
             <div className="w-full max-w-[500px]">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-manrope font-bold text-lg text-white">Automated Schedule</h3>
+                <h3 className="font-manrope font-bold text-lg text-white">Fan Schedule</h3>
                 <button className="flex items-center gap-1.5 font-jakarta font-bold text-[11px] uppercase tracking-widest text-[#FDD34D] hover:underline">
                   <span className="text-sm leading-none">+</span> Add New Rule
                 </button>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
-                {/* Morning Warmth */}
                 <div className="flex-1 rounded-2xl p-5" style={{ background: "#1A1A1A" }}>
                   <div className="flex items-start justify-between mb-8">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(245,209,251,0.1)", color: "#F5D1FB" }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 4V2M12 22V20M4 12H2M22 12H20M6.34 6.34L4.93 4.93M17.66 17.66L19.07 19.07M17.66 6.34L19.07 4.93M6.34 17.66L4.93 19.07M12 18C8.686 18 6 15.314 6 12C6 8.686 8.686 6 12 6C15.314 6 18 8.686 18 12C18 15.314 15.314 18 12 18Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 4V2M12 22V20M4 12H2M22 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                     </div>
-                    {/* Toggle Component */}
                     <div className="w-10 h-5 rounded-full flex items-center px-0.5 cursor-pointer" style={{ background: "#484847" }}>
                       <div className="w-4 h-4 rounded-full bg-[#FDD34D] transform translate-x-5 transition-transform" />
                     </div>
                   </div>
                   <div>
-                    <p className="font-jakarta text-[10px] text-[#ADAAAA] mb-1">Morning Warmth</p>
-                    <p className="font-manrope font-bold text-sm text-white mb-4">07:30 AM — 09:00 AM</p>
+                    <p className="font-jakarta text-[10px] text-[#ADAAAA] mb-1">Cooling Mode</p>
+                    <p className="font-manrope font-bold text-sm text-white mb-4">12:00 PM — 04:00 PM</p>
                     <div className="flex items-center gap-2 font-jakarta text-[10px] text-[#ADAAAA]">
                       <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 0L8.5 5.5L14 7L8.5 8.5L7 14L5.5 8.5L0 7L5.5 5.5L7 0Z" fill="currentColor"/></svg>
-                      Gradual Increase to 60%
+                      Set Speed to 70%
                     </div>
                   </div>
                 </div>
 
-                {/* Night Mode */}
                 <div className="flex-1 rounded-2xl p-5" style={{ background: "#1A1A1A" }}>
                   <div className="flex items-start justify-between mb-8">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(173,170,170,0.1)", color: "#ADAAAA" }}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </div>
-                    {/* Toggle Component OFF */}
                     <div className="w-10 h-5 rounded-full flex items-center px-0.5 cursor-pointer" style={{ background: "#262626" }}>
                       <div className="w-4 h-4 rounded-full bg-[#888] transform translate-x-0 transition-transform" />
                     </div>
                   </div>
                   <div>
-                    <p className="font-jakarta text-[10px] text-[#ADAAAA] mb-1">Night Mode</p>
+                    <p className="font-jakarta text-[10px] text-[#ADAAAA] mb-1">Sleep Mode</p>
                     <p className="font-manrope font-bold text-sm text-white mb-4">11:00 PM — 06:00 AM</p>
                     <div className="flex items-center gap-2 font-jakarta text-[10px] text-[#ADAAAA]">
                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 4V2M12 20V22M4 12H2M22 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                      Auto Shut-off
+                      Auto Off
                     </div>
                   </div>
                 </div>
@@ -246,7 +245,7 @@ export default function SmartLightPage() {
             </div>
           </div>
 
-          {/* ── Right Column: Devices List (Toggleable) ── */}
+          {/* ── Right Column: Other Devices ── */}
           <div
             className="flex flex-col overflow-hidden transition-all duration-300 ease-in-out shrink-0"
             style={{
@@ -257,36 +256,27 @@ export default function SmartLightPage() {
             }}
           >
             <aside className="w-[340px] h-full overflow-y-auto pt-8 pb-10 px-8 flex flex-col gap-10 scrollbar-hide">
-              {/* Living Room Area */}
               <div>
                 <h2 className="font-manrope font-bold text-lg text-white mb-6">Living Room</h2>
                 <div className="flex flex-col gap-3">
-                  {/* Ceiling Fan */}
+                  {/* Smart Lamp */}
                   <div 
-                    onClick={() => router.push("/devices/fan")}
+                    onClick={() => router.push("/devices/lamp")}
                     className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer hover:bg-[#262626] transition-colors relative" 
                     style={{ background: "#1A1A1A" }}
                   >
                     <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#262626] text-[#ADAAAA]">
-                      <svg 
-                        width="20" height="20" viewBox="0 0 24 24" fill="none"
-                        className={isFanAnimating ? "animate-spin-slow" : ""}
-                        style={{ animationDuration: '2s' }}
-                      >
-                        <path d="M10.85 12c0-1.25-.11-2.43-.31-3.53C10.15 6.44 9.19 5 7.81 5c-1.52 0-2.75 2.1-2.75 4.69 0 2.14.85 3.93 2.1 4.51.52.24 1.14.3 1.76.3H10.85Z" fill="currentColor"/>
-                        <path d="M12 10.85c1.25 0 2.43-.11 3.53-.31 2.03-.39 3.47-1.35 3.47-2.73 0-1.52-2.1-2.75-4.69-2.75-2.14 0-3.93.85-4.51 2.1-.24.52-.3 1.14-.3 1.76v1.93Z" fill="currentColor"/>
-                        <path d="M13.15 12c0 1.25.11 2.43.31 3.53.39 2.03 1.35 3.47 2.73 3.47 1.52 0 2.75-2.1 2.75-4.69 0-2.14-.85-3.93-2.1-4.51-.52-.24-1.14-.3-1.76-.3h-1.93Z" fill="currentColor"/>
-                        <path d="M12 13.15c-1.25 0-2.43.11-3.53.31-2.03.39-3.47 1.35-3.47 2.73 0 1.52 2.1 2.75 4.69 2.75 2.14 0 3.93-.85 4.51-2.1.24-.52.3-1.14.3-1.76v-1.93Z" fill="currentColor"/>
-                        <circle cx="12" cy="12" r="2" fill="currentColor" />
+                      <svg width="16" height="22" viewBox="0 0 24 34" fill="none">
+                        <path d="M12 0C5.37258 0 0 5.37258 0 12C0 16.0353 2.01633 19.6053 5 21.6445V25C5 26.1046 5.89543 27 7 27H17C18.1046 27 19 26.1046 19 25V21.6445C21.9837 19.6053 24 16.0353 24 12C24 5.37258 18.6274 0 12 0ZM7 31H17V29H7V31ZM10 34H14V32H10V34Z" fill="currentColor"/>
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-manrope font-bold text-sm text-white">Ceiling Fan</h4>
+                      <h4 className="font-manrope font-bold text-sm text-white">Main Chandelier</h4>
                       <p className="font-jakarta text-[10px] text-[#ADAAAA] mt-0.5">
-                        {deviceStates["dadn.fan-state"] === "1" ? `Speed ${deviceStates["dadn.fan-speed"] || 0}% • On` : "Off"}
+                        {deviceStates["dadn.led-state"] === "1" ? `${deviceStates["dadn.led-sate"] || 85}% intensity` : "Off"}
                       </p>
                     </div>
-                    {deviceStates["dadn.fan-state"] === "1" && (
+                    {deviceStates["dadn.led-state"] === "1" && (
                       <div className="absolute right-4 w-3 h-3 rounded-full bg-[#FDD34D] flex items-center justify-center">
                         <svg width="6" height="6" viewBox="0 0 8 8" fill="none"><path d="M3 6.5L0.5 4L1.2 3.3L3 5.1L6.8 1.3L7.5 2L3 6.5Z" fill="#5C4900"/></svg>
                       </div>
@@ -303,21 +293,26 @@ export default function SmartLightPage() {
                       <p className="font-jakarta text-[10px] text-[#ADAAAA] mt-0.5">Auto • 98% Quality</p>
                     </div>
                   </div>
-
-                  {/* Smart TV (Offline) */}
-                  <div className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer hover:bg-[#262626] transition-colors opacity-70" style={{ background: "#1A1A1A" }}>
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#262626] text-[#ADAAAA]">
-                      <svg width="18" height="14" viewBox="0 0 20 16" fill="none"><path d="M2.5 13H17.5V3H2.5V13ZM2.5 15C1.8125 15 1.22917 14.7552 0.75 14.2656C0.270833 13.776 0.03125 13.1875 0 12.5V3.5C0 2.8125 0.239583 2.224 0.71875 1.7345C1.19792 1.245 1.78646 1.00017 2.48438 1H17.5C18.1875 1 18.776 1.24483 19.2656 1.7345C19.7552 2.22417 20 2.81267 20 3.5V12.5C20 13.1875 19.7552 13.776 19.2656 14.2656C18.776 14.7552 18.1875 15 17.5 15H2.5ZM7 18V16H13V18H7Z" fill="currentColor"/></svg>
-                    </div>
-                    <div>
-                      <h4 className="font-manrope font-bold text-sm text-[#ADAAAA]">Smart TV</h4>
-                      <p className="font-jakarta text-[10px] text-[#888] mt-0.5">Offline</p>
-                    </div>
-                  </div>
                 </div>
               </div>
 
-
+              {/* Efficiency Tip */}
+              <div className="rounded-2xl p-5 border border-[rgba(253,211,77,0.1)] mt-auto" style={{ background: "linear-gradient(180deg, rgba(253,211,77,0.05) 0%, rgba(26,26,26,0.8) 100%)" }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M13 2L4 14H12L11 22L20 10H12L13 2Z" fill="#FDD34D" stroke="#FDD34D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span className="font-jakarta font-bold text-[11px] text-[#FDD34D] uppercase tracking-widest">Efficiency Tip</span>
+                </div>
+                <p className="font-jakarta text-[11px] text-[#ADAAAA] leading-relaxed mb-5">
+                  Running the fan at 50% instead of 100% reduces energy consumption by over 40%.
+                </p>
+                <button 
+                  className="w-full py-2.5 rounded-xl font-manrope font-bold text-xs text-white bg-[#2A2A2A] hover:bg-[#333] active:bg-[#222] transition-colors border border-[#484847]"
+                >
+                  Optimize All
+                </button>
+              </div>
             </aside>
           </div>
         </main>

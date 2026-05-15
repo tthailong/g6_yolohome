@@ -44,6 +44,8 @@ A modern, responsive smart home dashboard built with Next.js and Tailwind CSS.
 3. Setup Database (only first time):
    ```bash
    # Full setup with sample data (Recommended)
+   # Firstly, change mock data of 'YOUR_ADAFRUIT_IO_KEY', 'YOUR_ADAFRUIT_IO_USERNAME' in g6yolohome.sql file with your real data in .env file
+   # Secondly, run this code
    mysql -u root -p < backend/g6yolohome.sql
    ```
 
@@ -104,31 +106,31 @@ Open [http://localhost:8000/docs](http://localhost:8000/docs) to view the API do
 
 ```
 g6_yolohome/
-├── backend/             # FastAPI Backend
-│   ├── api/             # API Core logic
-│   │   ├── routers/     # API Route Handlers
-│   │   ├── main.py      # Server entry point
-│   │   ├── models.py    # Database models
-│   │   ├── schemas.py   # Pydantic models
-│   │   ├── database.py  # Connection setup
-│   │   ├── mqtt_manager.py  # MQTT Manager
-│   │   ├── deps.py      # Dependencies
-│   │   ├── socket_manager.py # Socket Manager
-│   │   └── .env             # Environment variables
-│   ├── requirement.txt  # Dependencies
-│   └── g6yolohome.sql   # Database Initialization
-├── frontend/            # Next.js Frontend
-│   ├── app/             # App Router pages
-│   │   ├── contexts/    # Context pages
-│   │   ├── devices/     # Device pages
-│   │   │   ├── page.tsx # Device list
-│   │   │   ├── lamp/    # Lamp page
-│   │   │   └── door/    # Door page
-│   │   └── ...         # More pages
-│   ├── components/      # UI components
-│   ├── context/         # React Context (State)
-│   └── lib/             # API Clients & Helpers
-├── venv/                # Python Virtual Env
+├── backend/                   # FastAPI Backend
+│   ├── api/                   # API Core logic
+│   │   ├── routers/           # API Route Handlers
+│   │   ├── main.py            # Server entry point
+│   │   ├── models.py          # Database models
+│   │   ├── schemas.py         # Pydantic models
+│   │   ├── database.py        # Connection setup
+│   │   ├── mqtt_manager.py    # MQTT Manager
+│   │   ├── deps.py            # Dependencies
+│   │   ├── socket_manager.py  # Socket Manager
+│   │   └── .env               # Environment variables
+│   ├── requirement.txt        # Dependencies
+│   └── g6yolohome.sql         # Database Initialization
+├── frontend/                  # Next.js Frontend
+│   ├── app/                   # App Router pages
+│   │   ├── contexts/          # Context pages
+│   │   ├── devices/           # Device pages
+│   │   │   ├── page.tsx       # Device list
+│   │   │   ├── lamp/          # Lamp page
+│   │   │   └── door/          # Door page
+│   │   └── ...                # More pages
+│   ├── components/            # UI components
+│   ├── context/               # React Context (State)
+│   └── lib/                   # API Clients & Helpers
+├── venv/                      # Python Virtual Env
 └── README.md
 ```
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/dashboard/Sidebar";
+import EnvironmentSummary from "@/components/dashboard/EnvironmentSummary";
 import DeviceCard, { AddDeviceCard } from "@/components/dashboard/DeviceCard";
 import type { DeviceCardData } from "@/components/dashboard/DeviceCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
@@ -47,6 +48,8 @@ const LockIcon = () => (
   </svg>
 );
 
+
+
 const AirIcon = () => (
   <svg width="18" height="14" viewBox="0 0 24 18" fill="none">
     <path d="M0 18V16H14C14.8333 16 15.5417 15.7083 16.125 15.125C16.7083 14.5417 17 13.8333 17 13C17 12.1667 16.7083 11.4583 16.125 10.875C15.5417 10.2917 14.8333 10 14 10H10V8H14C15.3833 8 16.5625 8.4875 17.5375 9.4625C18.5125 10.4375 19 11.6167 19 13C19 14.3833 18.5125 15.5625 17.5375 16.5375C16.5625 17.5125 15.3833 18 14 18H0ZM0 11V9H9C9.56667 9 10.0417 8.80417 10.425 8.4125C10.8083 8.02083 11 7.55 11 7C11 6.45 10.8083 5.97917 10.425 5.5875C10.0417 5.19583 9.56667 5 9 5H0V3H9C10.1 3 11.0417 3.39167 11.825 4.175C12.6083 4.95833 13 5.9 13 7C13 8.1 12.6083 9.04167 11.825 9.825C11.0417 10.6083 10.1 11 9 11H0ZM0 4V2H19C20.1 2 21.0417 1.60833 21.825 0.825C22.6083 0.0416667 23 -0.9 23 -2C23 -3.1 22.6083 -4.04167 21.825 -4.825C21.0417 -5.60833 20.1 -6 19 -6H16V-8H19C20.6667 -8 22.0833 -7.41667 23.25 -6.25C24.4167 -5.08333 25 -3.66667 25 -2C25 -0.333333 24.4167 1.08333 23.25 2.25C22.0833 3.41667 20.6667 4 19 4H0Z" fill="currentColor"/>
@@ -60,15 +63,22 @@ const BlindsIcon = () => (
 );
 
 const LightIcon = () => (
-  <svg width="18" height="20" viewBox="0 0 18 20" fill="none">
-    <path d="M9 20C7.9 20 7 19.1 7 18H11C11 19.1 10.1 20 9 20ZM4 13C4 10.24 6.24 8 9 8C11.76 8 14 10.24 14 13C14 14.72 13.1 16.24 11.76 17H6.24C4.9 16.24 4 14.72 4 13ZM9 0C5.13 0 2 3.13 2 7C2 9.38 3.19 11.48 5 12.72V17C5 17.55 5.45 18 6 18H12C12.55 18 13 17.55 13 17V12.72C14.81 11.48 16 9.38 16 7C16 3.13 12.87 0 9 0Z" fill="currentColor"/>
+  <svg width="15" height="21" viewBox="0 0 24 34" fill="none">
+    <path d="M12 0C5.37258 0 0 5.37258 0 12C0 16.0353 2.01633 19.6053 5 21.6445V25C5 26.1046 5.89543 27 7 27H17C18.1046 27 19 26.1046 19 25V21.6445C21.9837 19.6053 24 16.0353 24 12C24 5.37258 18.6274 0 12 0ZM7 31H17V29H7V31ZM10 34H14V32H10V34Z" fill="currentColor"/>
   </svg>
 );
 
-const FanIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <path d="M12 12C12.5523 12 13 11.5523 13 11C13 10.4477 12.5523 10 12 10C11.4477 10 11 10.4477 11 11C11 11.5523 11.4477 12 12 12Z" fill="currentColor"/>
-    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM17 11C17 13.76 14.76 16 12 16C10.54 16 9.24 15.38 8.32 14.38L9.74 12.96C10.3 13.6 11.1 14 12 14C13.66 14 15 12.66 15 11C15 10.1 14.6 9.3 13.96 8.74L15.38 7.32C16.38 8.24 17 9.54 17 11ZM12 6C13.46 6 14.76 6.62 15.68 7.62L14.26 9.04C13.7 8.4 12.9 8 12 8C10.34 8 9 9.34 9 11C9 11.9 9.4 12.7 10.04 13.26L8.62 14.68C7.62 13.76 7 12.46 7 11C7 8.24 9.24 6 12 6Z" fill="currentColor"/>
+const FanIcon = ({ isOn }: { isOn?: boolean }) => (
+  <svg 
+    width="22" height="22" viewBox="0 0 24 24" fill="none"
+    className={isOn ? "animate-spin-slow" : ""}
+    style={{ animationDuration: '2s' }}
+  >
+    <path d="M10.85 12c0-1.25-.11-2.43-.31-3.53C10.15 6.44 9.19 5 7.81 5c-1.52 0-2.75 2.1-2.75 4.69 0 2.14.85 3.93 2.1 4.51.52.24 1.14.3 1.76.3H10.85Z" fill="currentColor"/>
+    <path d="M12 10.85c1.25 0 2.43-.11 3.53-.31 2.03-.39 3.47-1.35 3.47-2.73 0-1.52-2.1-2.75-4.69-2.75-2.14 0-3.93.85-4.51 2.1-.24.52-.3 1.14-.3 1.76v1.93Z" fill="currentColor"/>
+    <path d="M13.15 12c0 1.25.11 2.43.31 3.53.39 2.03 1.35 3.47 2.73 3.47 1.52 0 2.75-2.1 2.75-4.69 0-2.14-.85-3.93-2.1-4.51-.52-.24-1.14-.3-1.76-.3h-1.93Z" fill="currentColor"/>
+    <path d="M12 13.15c-1.25 0-2.43.11-3.53.31-2.03.39-3.47 1.35-3.47 2.73 0 1.52 2.1 2.75 4.69 2.75 2.14 0 3.93-.85 4.51-2.1.24-.52.3-1.14.3-1.76v-1.93Z" fill="currentColor"/>
+    <circle cx="12" cy="12" r="2" fill="currentColor" />
   </svg>
 );
 
@@ -92,17 +102,19 @@ const INITIAL_ROOMS: { name: string; devices: (DeviceCardData & { feedName?: str
         id: "d2",
         name: "Ceiling Fan",
         subtitle: "Standby",
-        status: "standby",
+        status: "off",
+        isActive: false,
+        feedName: "dadn.fan-state",
+        additionalFeeds: ["dadn.fan-speed"],
         icon: <FanIcon />,
+        href: "/devices/fan",
       },
       {
         id: "d3",
         name: "Living Room Door",
         subtitle: "Secured",
         status: "locked",
-        badge: "LOCKED",
-        badgeColor: "#D53D18",
-        noToggle: true,
+        feedName: "dadn.door-state",
         icon: <LockIcon />,
         href: "/devices/door",
       },
@@ -136,11 +148,9 @@ const INITIAL_ROOMS: { name: string; devices: (DeviceCardData & { feedName?: str
       {
         id: "d6",
         name: "Front Door",
-        subtitle: "Secured at 10:45 PM",
+        subtitle: "Secured",
         status: "locked",
-        badge: "LOCKED",
-        badgeColor: "#D53D18",
-        noToggle: true,
+        feedName: "dadn.door-state",
         icon: <LockIcon />,
         href: "/devices/door",
       },
@@ -190,19 +200,10 @@ function DevicesTopNav({
         </span>
       </div>
 
-      {/* Right: Search + Bell + Avatar (Matching Dashboard) */}
+      {/* Right: Environment Summary (instead of Search) + Bell + Avatar (Matching Dashboard) */}
       <div className="flex items-center gap-4 md:gap-6">
-        {/* Search */}
-        <div
-          className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg w-48 lg:w-64"
-          style={{ background: "#262626", border: "1px solid #484847" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M12.45 13.5L7.725 8.775C7.35 9.075 6.91875 9.3125 6.43125 9.4875C5.94375 9.6625 5.425 9.75 4.875 9.75C3.5125 9.75 2.35938 9.27813 1.41562 8.33438C0.471875 7.39063 0 6.2375 0 4.875C0 3.5125 0.471875 2.35938 1.41562 1.41562C2.35938 0.471875 3.5125 0 4.875 0C6.2375 0 7.39063 0.471875 8.33438 1.41562C9.27813 2.35938 9.75 3.5125 9.75 4.875C9.75 5.425 9.6625 5.94375 9.4875 6.43125C9.3125 6.91875 9.075 7.35 8.775 7.725L13.5 12.45L12.45 13.5ZM4.875 8.25C5.8125 8.25 6.60938 7.92188 7.26562 7.26562C7.92188 6.60938 8.25 5.8125 8.25 4.875C8.25 3.9375 7.92188 3.14062 7.26562 2.48438C6.60938 1.82812 5.8125 1.5 4.875 1.5C3.9375 1.5 3.14062 1.82812 2.48438 2.48438C1.82812 3.14062 1.5 3.9375 1.5 4.875C1.5 5.8125 1.82812 6.60938 2.48438 7.26562C3.14062 7.92188 3.9375 8.25 4.875 8.25Z" fill="#ADAAAA"/>
-          </svg>
-          <span className="font-jakarta font-bold text-[10px] tracking-widest uppercase" style={{ color: "#ADAAAA" }}>
-            SEARCH...
-          </span>
+        <div className="hidden md:block">
+          <EnvironmentSummary />
         </div>
 
         {/* Bell — toggles notification panel */}
@@ -248,7 +249,31 @@ export default function DevicesPage() {
   const router = useRouter();
   const { deviceStates, updateDeviceState } = useDevices();
   const [showNotifications, setShowNotifications] = useState(true);
+  const [animatingFans, setAnimatingFans] = useState<Record<string, boolean>>({});
   const lastActionTime = useRef(0);
+  const prevDeviceStatesRef = useRef<Record<string, any>>({});
+
+  // Monitor fan states for temporary animation
+  useEffect(() => {
+    Object.keys(deviceStates).forEach(feed => {
+      if (feed === "dadn.fan-state") {
+        const isCurrentlyOn = deviceStates[feed] === "1";
+        const wasPreviouslyOn = prevDeviceStatesRef.current[feed] === "1";
+
+        // Trigger ONLY on transition from OFF/Undefined -> ON
+        if (isCurrentlyOn && !wasPreviouslyOn) {
+          if (!animatingFans[feed]) {
+            setAnimatingFans(prev => ({ ...prev, [feed]: true }));
+            setTimeout(() => {
+              setAnimatingFans(prev => ({ ...prev, [feed]: false }));
+            }, 1500);
+          }
+        }
+      }
+    });
+    // Update ref for next run
+    prevDeviceStatesRef.current = { ...deviceStates };
+  }, [deviceStates]);
 
   // Map global context state to our room data structure
   const roomData = INITIAL_ROOMS.map(room => ({
@@ -266,11 +291,31 @@ export default function DevicesPage() {
         
         updatedDevice.isActive = isActivated;
         updatedDevice.status = isActivated ? "on" : "off";
+        updatedDevice.subtitle = isActivated ? `Brightness ${brightnessValue}%` : "Off";
+      }
+
+      if (device.feedName === "dadn.door-state") {
+        const isLocked = globalValue === "1";
+        updatedDevice.isActive = isLocked;
+        updatedDevice.status = isLocked ? "locked" : "unlocked";
+        updatedDevice.subtitle = isLocked ? "Secured" : "Unlocked";
+        updatedDevice.icon = <LockIcon />;
+      }
+
+      if (device.feedName === "dadn.fan-state") {
+        const isActivated = globalValue === "1";
+        const rawSpeed = deviceStates["dadn.fan-speed"] || "0";
+        const speedValue = Math.round(parseFloat(rawSpeed));
+        
+        updatedDevice.isActive = isActivated;
+        updatedDevice.status = isActivated ? "on" : "off";
         if (isActivated) {
-          updatedDevice.subtitle = `${brightnessValue}% intensity`;
+          updatedDevice.subtitle = `Speed ${speedValue}% • On`;
         } else {
           updatedDevice.subtitle = "Off";
         }
+        // Pass the animation state to the icon
+        updatedDevice.icon = <FanIcon isOn={!!animatingFans[device.feedName || ""]} />;
       }
 
       if (device.feedName?.includes("temperature")) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import EnvironmentSummary from "./EnvironmentSummary";
 
 /* ── tiny calendar helpers ─────────────────────────────── */
 const MONTHS = [
@@ -152,11 +153,13 @@ export default function TopNav({
   onToggleNotifications,
   selectedDate,
   onSelectDate,
+  hideSummary = false,
 }: {
   showNotifications?: boolean;
   onToggleNotifications?: () => void;
   selectedDate: Date;
   onSelectDate: (d: Date) => void;
+  hideSummary?: boolean;
 }) {
   const [calOpen, setCalOpen] = useState(false);
 
@@ -216,20 +219,13 @@ export default function TopNav({
         )}
       </div>
 
-      {/* Right: Search + Bell + Avatar */}
+      {/* Right: Environment Summary (instead of Search) + Bell + Avatar */}
       <div className="flex items-center gap-4 md:gap-6">
-        {/* Search */}
-        <div
-          className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg w-48 lg:w-64"
-          style={{ background: "#262626", border: "1px solid #484847" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M12.45 13.5L7.725 8.775C7.35 9.075 6.91875 9.3125 6.43125 9.4875C5.94375 9.6625 5.425 9.75 4.875 9.75C3.5125 9.75 2.35938 9.27813 1.41562 8.33438C0.471875 7.39063 0 6.2375 0 4.875C0 3.5125 0.471875 2.35938 1.41562 1.41562C2.35938 0.471875 3.5125 0 4.875 0C6.2375 0 7.39063 0.471875 8.33438 1.41562C9.27813 2.35938 9.75 3.5125 9.75 4.875C9.75 5.425 9.6625 5.94375 9.4875 6.43125C9.3125 6.91875 9.075 7.35 8.775 7.725L13.5 12.45L12.45 13.5ZM4.875 8.25C5.8125 8.25 6.60938 7.92188 7.26562 7.26562C7.92188 6.60938 8.25 5.8125 8.25 4.875C8.25 3.9375 7.92188 3.14062 7.26562 2.48438C6.60938 1.82812 5.8125 1.5 4.875 1.5C3.9375 1.5 3.14062 1.82812 2.48438 2.48438C1.82812 3.14062 1.5 3.9375 1.5 4.875C1.5 5.8125 1.82812 6.60938 2.48438 7.26562C3.14062 7.92188 3.9375 8.25 4.875 8.25Z" fill="#ADAAAA"/>
-          </svg>
-          <span className="font-jakarta font-bold text-[10px] tracking-widest uppercase" style={{ color: "#ADAAAA" }}>
-            SEARCH...
-          </span>
-        </div>
+        {!hideSummary && (
+          <div className="hidden md:block">
+            <EnvironmentSummary />
+          </div>
+        )}
 
         {/* Bell — toggles notification panel */}
         <button

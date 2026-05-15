@@ -3,7 +3,7 @@
 import { useContext, useEffect, useState } from "react";
 import AuthContext from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { Home as HomeIcon, PlusCircle, Building2, MapPin } from "lucide-react";
+import { Home as HomeIcon, PlusCircle, Building2, MapPin, Settings } from "lucide-react";
 import { homeService, Home } from "@/lib/api/homes";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
@@ -67,28 +67,41 @@ export default function HomesPage() {
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 
                 {homes.map((home) => (
-                  <button 
-                    key={home.id}
-                    onClick={() => handleSelectHome(home.id)} 
-                    className="group h-[247px] p-8 flex flex-col justify-between items-start rounded-xl border border-[#484847] bg-[#131313] hover:bg-[#1a1a1a] hover:border-[#FDD34D]/50 transition-all cursor-pointer text-left w-full focus:outline-none focus:ring-1 focus:ring-[#FDD34D]"
-                  >
-                    <div className="w-full">
-                      <div className="flex justify-between w-full mb-3">
-                        <MapPin className="text-[#FDD34D] w-6 h-6" />
-                        <div className="px-3 py-1 rounded-full bg-[#FDD34D]/10 text-[#FDD34D] text-[10px] font-bold tracking-[1px] uppercase">
-                            Active
+                  <div key={home.id} className="relative group">
+                    <button 
+                      onClick={() => handleSelectHome(home.id)} 
+                      className="h-[247px] p-8 flex flex-col justify-between items-start rounded-xl border border-[#484847] bg-[#131313] hover:bg-[#1a1a1a] hover:border-[#FDD34D]/50 transition-all cursor-pointer text-left w-full focus:outline-none focus:ring-1 focus:ring-[#FDD34D]"
+                    >
+                      <div className="w-full">
+                        <div className="flex justify-between w-full mb-3">
+                          <MapPin className="text-[#FDD34D] w-6 h-6" />
+                          <div className="px-3 py-1 rounded-full bg-[#FDD34D]/10 text-[#FDD34D] text-[10px] font-bold tracking-[1px] uppercase">
+                              Active
+                          </div>
+                        </div>
+                        <h3 className="font-serif text-2xl font-bold mb-1 mt-4">{home.name}</h3>
+                        <p className="text-[#ADAAAA] text-sm font-serif">{home.address || (home.adafruitiouser ? `@${home.adafruitiouser}` : "Smart Sanctuary")}</p>
+                      </div>
+                      <div className="w-full pt-4 border-t border-[#484847]/30 flex justify-between items-center group-hover:border-[#484847]/50 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-[#FDD34D]"></div>
+                          <span className="text-[#ADAAAA] text-xs">All systems normal</span>
                         </div>
                       </div>
-                      <h3 className="font-serif text-2xl font-bold mb-1 mt-4">{home.name}</h3>
-                      <p className="text-[#ADAAAA] text-sm font-serif">{home.address || (home.adafruitiouser ? `@${home.adafruitiouser}` : "Smart Sanctuary")}</p>
-                    </div>
-                    <div className="w-full pt-4 border-t border-[#484847]/30 flex justify-between items-center group-hover:border-[#484847]/50 transition-colors">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-[#FDD34D]"></div>
-                        <span className="text-[#ADAAAA] text-xs">All systems normal</span>
-                      </div>
-                    </div>
-                  </button>
+                    </button>
+                    
+                    {/* Settings Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/homes/manage?id=${home.id}`);
+                      }}
+                      className="absolute bottom-6 right-6 p-2 rounded-lg bg-[#201F1F] border border-[#484847] text-[#ADAAAA] hover:text-white hover:bg-[#2A2A2A] hover:border-[#FDD34D]/50 transition-all z-20"
+                      title="Manage Settings"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </button>
+                  </div>
                 ))}
 
                 {homes.length === 0 && !loading && (
@@ -98,7 +111,7 @@ export default function HomesPage() {
                 )}
 
                 {/* Create New Sanctuary */}
-                <button onClick={() => router.push('/homes/manage')} className="group h-[247px] p-8 flex flex-col justify-center items-center rounded-[20px] border border-dashed border-[#484847] bg-transparent hover:bg-[#131313]/50 transition-all cursor-pointer text-center w-full focus:outline-none focus:ring-1 focus:ring-[#FDD34D]">
+                <button onClick={() => router.push('/homes/create')} className="group h-[247px] p-8 flex flex-col justify-center items-center rounded-[20px] border border-dashed border-[#484847] bg-transparent hover:bg-[#131313]/50 transition-all cursor-pointer text-center w-full focus:outline-none focus:ring-1 focus:ring-[#FDD34D]">
                    <div className="w-[56px] h-[56px] rounded-full bg-[#201F1F] flex items-center justify-center mb-6 group-hover:bg-[#2A2A2A] transition-colors border border-[#484847]/30">
                        <PlusCircle className="text-[#ADAAAA] w-6 h-6 group-hover:text-white transition-colors" />
                    </div>
