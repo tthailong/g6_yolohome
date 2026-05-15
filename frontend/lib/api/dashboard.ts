@@ -27,8 +27,10 @@ export const dashboardService = {
     return response.data;
   },
 
-  getActivities: async (homeId: number, limit: number = 10): Promise<any[]> => {
-    const response = await api.get(`/dashboard/activities?home_id=${homeId}&limit=${limit}`);
+  getActivities: async (homeId: number, limit: number = 10, date?: string): Promise<any[]> => {
+    let url = `/dashboard/activities?home_id=${homeId}&limit=${limit}`;
+    if (date) url += `&date=${date}`;
+    const response = await api.get(url);
     return response.data;
   }
 };

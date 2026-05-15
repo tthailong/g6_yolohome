@@ -29,6 +29,7 @@ export default function DashboardPage() {
           onToggleNotifications={() => setShowNotifications((v) => !v)}
           selectedDate={selectedDate}
           onSelectDate={setSelectedDate}
+          hideSummary={true}
         />
 
         {/* Dashboard Content Container */}
@@ -47,16 +48,14 @@ export default function DashboardPage() {
 
           {/* Right Sidebar - Recent Activity (toggleable) */}
           <div
-            className="hidden xl:flex flex-col overflow-hidden transition-all duration-300 ease-in-out"
+            className="hidden xl:flex flex-col transition-all duration-300 ease-in-out"
             style={{
               width: showNotifications ? "24rem" : "0px",
               opacity: showNotifications ? 1 : 0,
-              padding: showNotifications ? undefined : "0px",
+              padding: showNotifications ? "2rem 2rem 2rem 0" : "0px",
             }}
           >
-            <div className="w-96 h-full p-4 md:p-8 sticky top-0 shrink-0">
-              <RecentActivity />
-            </div>
+            <RecentActivity selectedDate={selectedDate} />
           </div>
         </main>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Sidebar from "@/components/dashboard/Sidebar";
 import TopNav from "@/components/dashboard/TopNav";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -56,10 +57,12 @@ export default function MembersPage() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  <Button className="bg-white text-black hover:bg-gray-200 rounded-full font-semibold px-6 flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Add New Member
-                  </Button>
+                  <Link href="/members/add">
+                    <Button className="bg-white text-black hover:bg-gray-200 rounded-full font-semibold px-6 flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      Add New Member
+                    </Button>
+                  </Link>
                 </div>
               </div>
 

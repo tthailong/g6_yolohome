@@ -112,4 +112,17 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #FDD34D;
   }
+
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
 }

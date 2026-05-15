@@ -105,7 +105,8 @@ async def get_activities(
     db: db_dependency,
     user: user_dependency,
     home_id: int,
-    limit: int = Query(20, description="Number of activities to return")
+    limit: int = Query(20, description="Number of activities to return"),
+    date: str = Query(None, description="Filter activities by date (YYYY-MM-DD)")
 ):
     # 1. Verify home belongs to user
     home = db.query(models.Home).filter(
@@ -117,7 +118,6 @@ async def get_activities(
         raise HTTPException(status_code=404, detail="Home not found")
     
     # 2. Get relevant sensors for this home
-    # We look for temperature, humidity, and earthquake (or similar)
     sensors = db.query(models.Sensor).join(models.Device).filter(
         models.Device.home_id == home_id,
         models.Sensor.sensor_type.in_(['temperature', 'humidity', 'earthquake', 'security'])
@@ -125,12 +125,32 @@ async def get_activities(
     
     client = AdafruitIOClient(home.adafruitiouser, home.adafruitiokey)
     
+    # 3. Calculate time range if date is provided
+    start_time = None
+    end_time = None
+    if date:
+        try:
+            requested_date = datetime.strptime(date, "%Y-%m-%d")
+            # Precise day window
+            start_time = requested_date.replace(hour=0, minute=0, second=0).isoformat() + "Z"
+            end_time = requested_date.replace(hour=23, minute=59, second=59).isoformat() + "Z"
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
     all_activities = []
     
     for sensor in sensors:
+        # Skip door state changes from activity log as requested
+        if sensor.feed_name == 'dadn.door-state':
+            continue
+            
         try:
-            # Fetch a larger set of recent data to provide a better history
-            data_points = await client.get_feed_data(sensor.feed_name, limit=50)
+            if start_time and end_time:
+                # Fetch only for that day
+                data_points = await client.get_historical_data(sensor.feed_name, start_time, end_time)
+            else:
+                # Fetch recent items for 'View All' mode
+                data_points = await client.get_feed_data(sensor.feed_name, limit=100)
             
             # Process from oldest to newest to detect threshold crossings
             is_above = False

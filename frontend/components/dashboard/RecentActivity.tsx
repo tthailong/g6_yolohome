@@ -61,17 +61,27 @@ const formatTime = (isoString: string) => {
   return `${dateStr} ${timeStr}`;
 };
 
-export default function RecentActivity() {
+export default function RecentActivity({ selectedDate }: { selectedDate?: Date }) {
   const { selectedHomeId } = useDevices();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     const fetchActivities = async () => {
       if (!selectedHomeId) return;
       try {
         setLoading(true);
-        const data = await dashboardService.getActivities(selectedHomeId, 10);
+        
+        // If 'View All', we load a large set without date restriction
+        // If not, we only load for the selected date
+        const dateStr = !showAll && selectedDate 
+          ? selectedDate.toISOString().split('T')[0] 
+          : undefined;
+
+        const limit = showAll ? 100 : 50;
+        const data = await dashboardService.getActivities(selectedHomeId, limit, dateStr);
+        
         setActivities(data);
       } catch (error) {
         console.error("Failed to fetch activities:", error);
@@ -81,33 +91,44 @@ export default function RecentActivity() {
     };
 
     fetchActivities();
-    // Refresh every minute
     const interval = setInterval(fetchActivities, 60000);
     return () => clearInterval(interval);
-  }, [selectedHomeId]);
+  }, [selectedHomeId, showAll, selectedDate]);
+
+  // We still filter today's specifically for the default UI view
+  const filteredActivities = showAll 
+    ? activities 
+    : activities; // Backend already filtered by date if showAll is false
 
   return (
     <aside
-      className="flex flex-col gap-8 p-6 md:p-8 rounded-xl h-full w-full"
-      style={{ background: "#131313", border: "1px solid #484847" }}
+      className="flex flex-col gap-8 p-6 md:p-8 rounded-xl w-full sticky top-0"
+      style={{ 
+        background: "#131313", 
+        border: "1px solid #484847",
+        height: "calc(100vh - 8rem)",
+        maxHeight: "calc(100vh - 8rem)"
+      }}
     >
       {/* Header */}
       <div className="flex items-center gap-2">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 22C13.1 22 14 21.1 14 20H10C10 21.1 10.9 22 12 22ZM18 16V11C18 7.93 16.37 5.36 13.5 4.68V4C13.5 3.17 12.83 2.5 12 2.5C11.17 2.5 10.5 3.17 10.5 4V4.68C7.64 5.36 6 7.92 6 11V16L4 18V19H20V18L18 16ZM16 17H8V11C8 8.52 9.51 6.5 12 6.5C14.49 6.5 16 8.52 16 11V17Z" fill="#FDD34D" />
         </svg>
-        <h2 className="font-manrope font-extrabold text-lg text-white">Recent Activity</h2>
+        <h2 className="font-manrope font-extrabold text-lg text-white">
+          {showAll ? "Activity History" : "Today's Activity"}
+        </h2>
       </div>
 
       {/* Activity List */}
-      <div className="flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2">
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto custom-scrollbar pr-2 min-h-0">
         {loading && activities.length === 0 ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FDD34D] mx-auto mb-4"></div>
             <p className="text-[#ADAAAA] text-xs">Fetching records...</p>
           </div>
-        ) : activities.length > 0 ? (
-          activities.map((activity, index) => {
+        ) : filteredActivities.length > 0 ? (
+          filteredActivities.map((activity, index) => {
             const theme = activityThemes[activity.theme] || activityThemes.device;
             return (
               <div
@@ -135,17 +156,20 @@ export default function RecentActivity() {
           })
         ) : (
           <div className="text-center py-8 border border-dashed border-[#484847] rounded-xl">
-             <p className="text-[#ADAAAA] text-xs">No recent activity detected.</p>
+             <p className="text-[#ADAAAA] text-xs">
+               {showAll ? "No activity history found." : "No activity recorded today."}
+             </p>
           </div>
         )}
       </div>
 
       {/* View All Button */}
       <button
+        onClick={() => setShowAll(!showAll)}
         className="mt-auto w-full py-3 rounded-lg border font-jakarta font-bold text-[10px] uppercase tracking-widest text-[#ADAAAA] transition-colors hover:text-white hover:border-[#ADAAAA]"
         style={{ borderColor: "#484847" }}
       >
-        View All Activity
+        {showAll ? "Show Today Only" : "View All Activity"}
       </button>
     </aside>
   );

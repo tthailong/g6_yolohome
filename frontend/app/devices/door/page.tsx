@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import LightTopNav from "@/components/dashboard/LightTopNav";
 import { 
@@ -17,10 +17,58 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { useDevices } from "@/app/context/DeviceContext";
+
 export default function SmartDoorPage() {
-  const [isLocked, setIsLocked] = useState(false);
+  const { deviceStates, updateDeviceState } = useDevices();
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const handleActivateCamera = async () => {
+    setIsScanning(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+      streamRef.current = stream;
+      
+      setTimeout(() => {
+        setIsScanning(false);
+        setIsCameraActive(true);
+      }, 1500);
+    } catch (err) {
+      console.error("Webcam access denied:", err);
+      setIsScanning(false);
+      alert("Please allow camera access to use the Live Feed.");
+    }
+  };
+
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [isCameraActive]);
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const isLocked = deviceStates["dadn.door-state"] === "1";
+
+  const handleToggle = async (lock: boolean) => {
+    try {
+      const valueToSend = lock ? "1" : "0";
+      await updateDeviceState("dadn.door-state", valueToSend);
+    } catch (error) {
+      console.error("Failed to update door state:", error);
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-[#0E0E0E] text-white font-sans overflow-hidden">
@@ -38,24 +86,54 @@ export default function SmartDoorPage() {
           <div className="flex-1 flex flex-col p-8 overflow-y-auto transition-all duration-300">
 
             {/* Camera Feed Section */}
-            <div className="bg-[#121212] border border-[#262626] rounded-2xl overflow-hidden mb-8 relative">
-              <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full flex items-center text-xs font-semibold text-green-400 border border-green-500/20">
+            <div className="bg-[#121212] border border-[#262626] rounded-2xl overflow-hidden mb-8 relative group">
+              <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full flex items-center text-xs font-semibold text-green-400 border border-green-500/20 z-10">
                 <Shield className="w-3 h-3 mr-2" />
-                ENCRYPTED
+                {isCameraActive ? "LIVE FEED" : "ENCRYPTED"}
               </div>
               
-              <div className="h-[360px] flex flex-col items-center justify-center bg-gradient-to-b from-[#1A1A1A] to-[#0E0E0E]">
-                <div className="w-20 h-20 bg-[#262626] rounded-full flex items-center justify-center mb-6">
-                  <Video className="w-10 h-10 text-[#ADAAAA]" />
+              {isCameraActive && (
+                <div className="absolute top-4 right-4 bg-red-600 px-3 py-1 rounded flex items-center text-[10px] font-bold text-white animate-pulse z-10">
+                  <div className="w-2 h-2 rounded-full bg-white mr-2" />
+                  REC
                 </div>
-                <h2 className="text-xl font-bold text-white mb-2">Turn on your camera in Main door</h2>
-                <p className="text-[#ADAAAA] text-sm text-center max-w-md mb-8">
-                  Security feed is currently encrypted and in standby mode.
-                </p>
-                <button className="bg-white text-black hover:bg-gray-200 px-6 py-3 rounded-full font-semibold transition-colors flex items-center">
-                  <Video className="w-4 h-4 mr-2" />
-                  Activate Live Feed
-                </button>
+              )}
+              
+              <div className="h-[540px] relative flex flex-col items-center justify-center bg-gradient-to-b from-[#1A1A1A] to-[#0E0E0E]">
+                {isCameraActive ? (
+                  <>
+                    <video 
+                      ref={videoRef}
+                      autoPlay 
+                      playsInline
+                      className="w-full h-full object-cover brightness-110 contrast-110"
+                    />
+                    {/* Scanline Effect */}
+                    <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] bg-[length:100%_4px,3px_100%]" />
+                  </>
+                ) : isScanning ? (
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 border-4 border-t-[#FDD34D] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mb-4" />
+                    <p className="text-[#FDD34D] font-mono text-sm tracking-widest animate-pulse">ESTABLISHING SECURE LINK...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="w-20 h-20 bg-[#262626] rounded-full flex items-center justify-center mb-6">
+                      <Video className="w-10 h-10 text-[#ADAAAA]" />
+                    </div>
+                    <h2 className="text-xl font-bold text-white mb-2">Turn on your camera in Main door</h2>
+                    <p className="text-[#ADAAAA] text-sm text-center max-w-md mb-8">
+                      Security feed is currently encrypted and in standby mode.
+                    </p>
+                    <button 
+                      onClick={handleActivateCamera}
+                      className="bg-white text-black hover:bg-gray-200 px-6 py-3 rounded-full font-semibold transition-colors flex items-center"
+                    >
+                      <Video className="w-4 h-4 mr-2" />
+                      Activate Live Feed
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -69,7 +147,7 @@ export default function SmartDoorPage() {
               </div>
               <div className="flex bg-[#1A1A1A] p-1 rounded-xl border border-[#262626]">
                 <button
-                  onClick={() => setIsLocked(false)}
+                  onClick={() => handleToggle(false)}
                   className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all ${
                     !isLocked 
                       ? "bg-white text-black shadow-sm" 
@@ -80,7 +158,7 @@ export default function SmartDoorPage() {
                   Unlock
                 </button>
                 <button
-                  onClick={() => setIsLocked(true)}
+                  onClick={() => handleToggle(true)}
                   className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all ${
                     isLocked 
                       ? "bg-white text-black shadow-sm" 

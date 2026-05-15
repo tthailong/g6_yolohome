@@ -114,13 +114,16 @@ VALUES (1, 'newhome', 'YOUR_ADAFRUIT_IO_KEY', 'YOUR_ADAFRUIT_IO_USERNAME', 1);
 INSERT IGNORE INTO device_types (id, type_name, icon_url, admin_id) VALUES 
 (1, 'Environment Sensor', 'https://img.icons8.com/color/48/000000/temperature--v1.png', 1),
 (2, 'Light Control', 'https://img.icons8.com/color/48/000000/light-dimming.png', 1),
-(3, 'Security System', 'https://img.icons8.com/color/48/000000/shield.png', 1);
+(3, 'Security System', 'https://img.icons8.com/color/48/000000/shield.png', 1),
+(4, 'Fan Control', 'https://img.icons8.com/color/48/000000/fan.png', 1);
 
 -- 4.5 Devices
 INSERT IGNORE INTO devices (id, name, device_type_id, home_id, owner_id) VALUES
 (1, 'Living Room DHT20', 1, 1, 1),
 (2, 'Smart LED', 2, 1, 1),
-(3, 'Main Entrance Security', 3, 1, 1);
+(3, 'Main Entrance Security', 3, 1, 1),
+(4, 'Ceiling Fan', 4, 1, 1),
+(5, 'Main Door Lock', 3, 1, 1);
 
 -- 4.6 Sensors and Feeds
 INSERT IGNORE INTO sensors (id, device_id, sensor_type, feed_name) VALUES
@@ -128,4 +131,7 @@ INSERT IGNORE INTO sensors (id, device_id, sensor_type, feed_name) VALUES
 (2, 1, 'humidity', 'dadn.dht20-humidity'),
 (3, 2, 'led', 'dadn.led-state'),
 (6, 2, 'brightness', 'dadn.led-sate'),
-(5, 3, 'earthquake', 'dadn.earthquake-detected');
+(5, 3, 'earthquake', 'dadn.earthquake-detected'),
+(7, 4, 'fan', 'dadn.fan-state'),
+(8, 4, 'speed', 'dadn.fan-speed'),
+(9, 5, 'security', 'dadn.door-state');

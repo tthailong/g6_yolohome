@@ -45,3 +45,17 @@ def delete_home(db: db_dependency, user: user_dependency, home_id: int):
         db.delete(db_home)
         db.commit()
     return db_home
+
+@router.put('/')
+def update_home(db: db_dependency, user: user_dependency, home_id: int, home: HomeCreate):
+    db_home = db.query(Home).filter(Home.id == home_id).first()
+    if not db_home:
+        return {"detail": "Home not found"}
+    
+    db_home.name = home.name
+    db_home.adafruitiokey = home.adafruitiokey.strip()
+    db_home.adafruitiouser = home.adafruitiouser.strip()
+    
+    db.commit()
+    db.refresh(db_home)
+    return db_home
