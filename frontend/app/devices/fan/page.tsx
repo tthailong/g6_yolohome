@@ -82,6 +82,9 @@ export default function SmartFanPage() {
     try {
       const valueToSend = nextState ? "1" : "0";
       await updateDeviceState("dadn.fan-state", valueToSend);
+      if (nextState && speed < 50) {
+        await updateDeviceState("dadn.fan-speed", "50");
+      }
     } catch (error) {
       console.error("Failed to control fan state:", error);
     }

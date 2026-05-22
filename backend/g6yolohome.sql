@@ -134,4 +134,5 @@ INSERT IGNORE INTO sensors (id, device_id, sensor_type, feed_name) VALUES
 (5, 3, 'earthquake', 'dadn.earthquake-detected'),
 (7, 4, 'fan', 'dadn.fan-state'),
 (8, 4, 'speed', 'dadn.fan-speed'),
-(9, 5, 'security', 'dadn.door-state');
+(9, 5, 'security', 'dadn.door-state'),
+(10, 5, 'face', 'dadn.face-detect');
