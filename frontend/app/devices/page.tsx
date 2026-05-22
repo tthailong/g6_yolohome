@@ -339,6 +339,13 @@ export default function DevicesPage() {
       try {
         const valueToSend = nextState ? "1" : "0";
         await updateDeviceState(targetFeed, valueToSend);
+        if (targetFeed === "dadn.fan-state" && nextState) {
+          const rawSpeed = deviceStates["dadn.fan-speed"] || "0";
+          const speedValue = Math.round(parseFloat(rawSpeed));
+          if (speedValue < 50) {
+            await updateDeviceState("dadn.fan-speed", "50");
+          }
+        }
       } catch (error) {
         console.error("Control failed:", error);
       }
