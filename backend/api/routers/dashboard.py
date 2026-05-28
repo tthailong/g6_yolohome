@@ -19,14 +19,19 @@ async def get_sensor_history(
     sensor_id: int,
     date: str = Query(..., description="Date in YYYY-MM-DD format")
 ):
-    # 1. Verify sensor exists and belongs to user
-    sensor = db.query(models.Sensor).join(models.Device).join(models.Home).filter(
-        models.Sensor.id == sensor_id,
-        models.Home.owner_id == user.get('id')
-    ).first()
-    
+    # 1. Verify sensor exists
+    sensor = db.query(models.Sensor).filter(models.Sensor.id == sensor_id).first()
     if not sensor:
-        raise HTTPException(status_code=404, detail="Sensor not found or access denied")
+        raise HTTPException(status_code=404, detail="Sensor not found")
+        
+    # Verify user has access to the home
+    uh = db.query(models.UserHome).filter(
+        models.UserHome.user_id == user.get('id'),
+        models.UserHome.home_id == sensor.device.home_id,
+        models.UserHome.status == models.UserHomeStatus.accepted
+    ).first()
+    if not uh:
+        raise HTTPException(status_code=403, detail="Access denied to this home's sensors")
     
     # 2. Get Home credentials
     home = db.query(models.Home).filter(models.Home.id == sensor.device.home_id).first()
@@ -60,12 +65,16 @@ async def get_dashboard_summary(
     user: user_dependency,
     home_id: int
 ):
-    # 1. Verify home belongs to user
-    home = db.query(models.Home).filter(
-        models.Home.id == home_id,
-        models.Home.owner_id == user.get('id')
+    # 1. Verify user belongs to home
+    uh = db.query(models.UserHome).filter(
+        models.UserHome.user_id == user.get('id'),
+        models.UserHome.home_id == home_id,
+        models.UserHome.status == models.UserHomeStatus.accepted
     ).first()
-    
+    if not uh:
+        raise HTTPException(status_code=403, detail="Access denied. Not a member of this home.")
+        
+    home = db.query(models.Home).filter(models.Home.id == home_id).first()
     if not home:
         raise HTTPException(status_code=404, detail="Home not found")
     
@@ -108,12 +117,16 @@ async def get_activities(
     limit: int = Query(20, description="Number of activities to return"),
     date: str = Query(None, description="Filter activities by date (YYYY-MM-DD)")
 ):
-    # 1. Verify home belongs to user
-    home = db.query(models.Home).filter(
-        models.Home.id == home_id,
-        models.Home.owner_id == user.get('id')
+    # 1. Verify user belongs to home
+    uh = db.query(models.UserHome).filter(
+        models.UserHome.user_id == user.get('id'),
+        models.UserHome.home_id == home_id,
+        models.UserHome.status == models.UserHomeStatus.accepted
     ).first()
-    
+    if not uh:
+        raise HTTPException(status_code=403, detail="Access denied. Not a member of this home.")
+        
+    home = db.query(models.Home).filter(models.Home.id == home_id).first()
     if not home:
         raise HTTPException(status_code=404, detail="Home not found")
     

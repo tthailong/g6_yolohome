@@ -15,8 +15,10 @@ export default function EmergencyAlert({ type, message, onDismiss }: EmergencyAl
     fire: {
       title: "Fire Emergency Detected",
       defaultMessage: "Flame detected in Kitchen! Buzzer active. All safety doors unlocked. Please exit immediately!",
-      bg: "#FF5722",
+      bg: "linear-gradient(135deg, #E64A19 0%, #FF5722 100%)",
       shadow: "0 0 20px 0 rgba(255, 87, 34, 0.50)",
+      animationClass: "fire-alert-active",
+      iconClass: "fire-icon-flicker",
       btnBg: "#FFF",
       btnColor: "#FF5722",
       icon: (
@@ -26,10 +28,12 @@ export default function EmergencyAlert({ type, message, onDismiss }: EmergencyAl
       )
     },
     earthquake: {
-      title: "Earthquake Warning",
+      title: "Earthquake - Warning",
       defaultMessage: "Seismic activity detected! Take cover under sturdy furniture immediately. Stay away from windows!",
-      bg: "#8D6E63", // Dark Brown/Earth
+      bg: "linear-gradient(135deg, #5D4037 0%, #8D6E63 100%)",
       shadow: "0 0 20px 0 rgba(141, 110, 99, 0.50)",
+      animationClass: "earthquake-alert-active",
+      iconClass: "earthquake-icon-rumble",
       btnBg: "#FFD54F", // Yellow/Gold
       btnColor: "#3E2723",
       icon: (
@@ -44,12 +48,40 @@ export default function EmergencyAlert({ type, message, onDismiss }: EmergencyAl
 
   return (
     <div
-      className="flex items-center justify-between w-full px-4 py-4 rounded-xl animate-in fade-in slide-in-from-top duration-500"
+      className={`flex items-center justify-between w-full px-4 py-4 rounded-xl animate-in fade-in slide-in-from-top duration-500 ${config.animationClass}`}
       style={{ background: config.bg, boxShadow: config.shadow }}
     >
+      <style dangerouslySetInnerHTML={{__html: `
+        .fire-alert-active {
+          animation: pulseGlow 2.5s infinite ease-in-out;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .earthquake-alert-active {
+          animation: pulseGlow 2.5s infinite ease-in-out;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .fire-icon-flicker {
+          animation: flicker 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseGlow {
+          0%, 100% {
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.15), inset 0 0 6px rgba(255, 255, 255, 0.05);
+          }
+          50% {
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.5), inset 0 0 12px rgba(255, 255, 255, 0.15);
+          }
+        }
+
+        @keyframes flicker {
+          0%, 100% { opacity: 0.8; }
+          50% { opacity: 1; filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.4)); }
+        }
+      `}} />
+
       <div className="flex items-center gap-4">
         <div
-          className="flex items-center justify-center p-2 rounded-lg flex-shrink-0"
+          className={`flex items-center justify-center p-2 rounded-lg flex-shrink-0 ${config.iconClass}`}
           style={{ background: "rgba(255,255,255,0.20)" }}
         >
           {config.icon}
@@ -66,18 +98,21 @@ export default function EmergencyAlert({ type, message, onDismiss }: EmergencyAl
       </div>
 
       <div className="flex gap-2">
+        {isFire && (
+          <button
+            onClick={onDismiss}
+            className="flex-shrink-0 px-4 py-2 rounded-lg font-jakarta font-bold text-[10px] uppercase tracking-widest cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
+            style={{ color: "#FFF" }}
+          >
+            Dismiss
+          </button>
+        )}
         <button
           onClick={onDismiss}
-          className="flex-shrink-0 px-4 py-2 rounded-lg font-jakarta font-bold text-[10px] uppercase tracking-widest cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
-          style={{ color: "#FFF" }}
-        >
-          Dismiss
-        </button>
-        <button
           className="flex-shrink-0 px-4 py-2 rounded-lg font-jakarta font-bold text-[10px] uppercase tracking-widest cursor-pointer"
           style={{ background: config.btnBg, color: config.btnColor, letterSpacing: "1px", boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)" }}
         >
-          {isFire ? "Exit Now" : "Seek Shelter"}
+          {isFire ? "Exit Now" : "Dismiss"}
         </button>
       </div>
     </div>

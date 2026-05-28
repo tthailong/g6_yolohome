@@ -26,7 +26,7 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
         if (message.feed_name === "dadn.fire-detected" && message.value !== "0" && message.value !== "") {
           setActiveAlert({ type: "fire", message: "Flame detected in your home! Buzzer active." });
         } else if (message.feed_name === "dadn.earthquake-detected" && message.value !== "0" && message.value !== "") {
-          setActiveAlert({ type: "earthquake", message: "Seismic vibrations detected! Please seek shelter." });
+          setActiveAlert({ type: "earthquake", message: "Ground shaking detected! Find a safe place now." });
         } else if (message.value === "0") {
           // Auto-clear alert if sensor value goes back to 0
           setActiveAlert(prev => {

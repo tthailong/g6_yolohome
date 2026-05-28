@@ -17,7 +17,7 @@ export default function ViewMemberPage() {
   const member = {
     id: params.id,
     name: "Ngọc Dung",
-    role: "Admin",
+    role: "Manager",
     email: "dung@example.com",
     phone: "+84 987 654 321",
     joinedDate: "15 Tháng 3, 2026",
@@ -78,7 +78,7 @@ export default function ViewMemberPage() {
                       {member.name.charAt(0)}
                     </div>
                     <h2 className="text-xl font-bold">{member.name}</h2>
-                    <span className={`inline-block px-3 py-1 mt-2 text-xs font-semibold rounded-full ${member.role === 'Admin' ? 'bg-[#FDD34D]/20 text-[#FDD34D]' : 'bg-gray-700 text-gray-300'}`}>
+                    <span className={`inline-block px-3 py-1 mt-2 text-xs font-semibold rounded-full ${member.role === 'Manager' ? 'bg-[#FDD34D]/20 text-[#FDD34D]' : 'bg-gray-700 text-gray-300'}`}>
                       {member.role}
                     </span>
                   </div>
@@ -124,8 +124,8 @@ export default function ViewMemberPage() {
                           </span>
                         </div>
                       ))}
-                      {member.role === 'Admin' && (
-                        <p className="text-sm text-[#FDD34D] mt-2 italic">* Quản trị viên có quyền truy cập tất cả thiết bị trong nhà.</p>
+                      {member.role === 'Manager' && (
+                        <p className="text-sm text-[#FDD34D] mt-2 italic">* Quản lý có quyền truy cập tất cả thiết bị trong nhà.</p>
                       )}
                     </div>
                   </div>

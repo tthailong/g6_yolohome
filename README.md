@@ -60,12 +60,12 @@ A modern, responsive smart home dashboard built with Next.js and Tailwind CSS.
    .\venv\Scripts\Activate
 
    # Install dependencies
-   pip install -r backend/requirement.txt
+   pip install -r backend/requirements.txt
    ```
 
 ### Environment Configuration
 
-Create a `.env` file in the `backend/` directory with the following content:
+Create a `.env` file in the `backend/api/` directory with the following content:
 
 ```env
 # Auth Configuration
@@ -78,6 +78,11 @@ DATABASE_URL=mysql+pymysql://root:password@localhost:3306/g6yolohome
 # Adafruit IO Credentials
 ADAFRUIT_IO_USERNAME=YOUR_ADAFRUIT_IO_USERNAME
 ADAFRUIT_IO_KEY=YOUR_ADAFRUIT_IO_KEY
+
+# Cloudinary Credentials
+CLOUDINARY_CLOUD_NAME=YOUR_CLOUDINARY_CLOUD_NAME
+CLOUDINARY_API_KEY=YOUR_CLOUDINARY_API_KEY
+CLOUDINARY_API_SECRET=YOUR_CLOUDINARY_API_SECRET
 ```
 
 ### Development
@@ -117,7 +122,7 @@ g6_yolohome/
 │   │   ├── deps.py            # Dependencies
 │   │   ├── socket_manager.py  # Socket Manager
 │   │   └── .env               # Environment variables
-│   ├── requirement.txt        # Dependencies
+│   ├── requirements.txt       # Dependencies
 │   └── g6yolohome.sql         # Database Initialization
 ├── frontend/                  # Next.js Frontend
 │   ├── app/                   # App Router pages

@@ -1,12 +1,9 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
-from models import UserRole
-
 # --- User Schemas ---
 class UserBase(BaseModel):
     username: str
-    role: UserRole
     email: str
     phone: str
 
@@ -83,3 +80,18 @@ class DeviceControl(BaseModel):
     home_id: int
     feed_name: str
     value: str
+
+# --- Camera Schemas ---
+class CameraBase(BaseModel):
+    device_id: int
+    url: str
+    person_name: str
+
+class CameraCreate(CameraBase):
+    pass
+
+class CameraResponse(CameraBase):
+    id: int
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
