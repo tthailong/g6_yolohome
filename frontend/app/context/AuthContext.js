@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useState } from "react";
+import React, { createContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/lib/api/auth";
 import api from "@/lib/api/client";
@@ -11,11 +11,30 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const router = useRouter();
 
+    useEffect(() => {
+        const loadUser = async () => {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            if (token) {
+                try {
+                    const data = await authService.getMe();
+                    setUser(data);
+                } catch (error) {
+                    console.log('Failed to restore user session:', error);
+                    localStorage.removeItem('token');
+                    setUser(null);
+                }
+            }
+        };
+        loadUser();
+    }, []);
+
     const login = async (username, password) => {
         try {
             const data = await authService.login(username, password);
             localStorage.setItem('token', data.access_token);
-            setUser(data);
+            // Fetch full profile info (contains id)
+            const profile = await authService.getMe();
+            setUser(profile);
             router.push('/homes');
         } catch (error){
             console.log('Login Failed:', error);

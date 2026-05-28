@@ -7,20 +7,23 @@ import {
   ChevronLeft, 
   Search, 
   Video, 
+  VideoOff,
   Lock, 
   Unlock, 
   AlertTriangle, 
   UserCheck, 
   Clock, 
   Settings,
-  Shield
+  Shield,
+  Trash2
 } from "lucide-react";
 import Link from "next/link";
 
 import { useDevices } from "@/app/context/DeviceContext";
+import api from "@/lib/api/client";
 
 export default function SmartDoorPage() {
-  const { deviceStates, updateDeviceState } = useDevices();
+  const { deviceStates, updateDeviceState, refreshStates } = useDevices();
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -36,6 +39,8 @@ export default function SmartDoorPage() {
 
   const lastRecognizedNameRef = useRef<string | null>(null);
   const lastSentTimeRef = useRef<number>(0);
+  const lastUploadTimeRef = useRef<number>(0);
+  const lastFaceSeenTimeRef = useRef<number>(Date.now());
   const animationFrameRef = useRef<number | null>(null);
 
   // Dynamic Access Log list
@@ -120,6 +125,55 @@ export default function SmartDoorPage() {
     }
   };
 
+  // Capture frame helper
+  const captureFrame = (): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      if (!videoRef.current) return resolve(null);
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = videoRef.current.videoWidth || 640;
+        canvas.height = videoRef.current.videoHeight || 480;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            resolve(blob);
+          }, "image/jpeg", 0.85);
+        } else {
+          resolve(null);
+        }
+      } catch (err) {
+        console.error("Failed to capture frame:", err);
+        resolve(null);
+      }
+    });
+  };
+
+  // Fetch camera logs from DB on mount
+  useEffect(() => {
+    const fetchCameraLogs = async () => {
+      try {
+        const res = await api.get("/devices/camera/logs");
+        if (res.data && res.data.length > 0) {
+          const fetchedLogs = res.data.map((c: any) => ({
+            id: c.id,
+            type: c.person_name.toLowerCase().includes("unknown") ? "alert" : "auth",
+            title: c.person_name.toLowerCase().includes("unknown") 
+              ? `Unknown face captured!` 
+              : `Recognized face: ${c.person_name}`,
+            file: c.url,
+            time: new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            detail: "DB RECORD"
+          }));
+          setLogs(fetchedLogs);
+        }
+      } catch (err) {
+        console.error("Failed to fetch camera logs on mount:", err);
+      }
+    };
+    fetchCameraLogs();
+  }, []);
+
   // Run real-time face detection loop
   useEffect(() => {
     let active = true;
@@ -143,32 +197,70 @@ export default function SmartDoorPage() {
           if (maxProb > 0.85) { // 85% confidence threshold
             setDetectedName(bestClass);
             setDetectionConfidence(Math.round(maxProb * 100));
+            lastFaceSeenTimeRef.current = Date.now(); // Record active presence
 
             const now = Date.now();
-            const timeSinceLastSend = now - lastSentTimeRef.current;
-            const isNewPerson = bestClass !== lastRecognizedNameRef.current;
 
-            if (isNewPerson || timeSinceLastSend > 10000) { // 10 seconds cooldown to avoid spamming
-              lastRecognizedNameRef.current = bestClass;
-              lastSentTimeRef.current = now;
+            // 1. Upload frame & recognized name to Cloudinary & MySQL DB (limit to once every 1s)
+            if (now - lastUploadTimeRef.current >= 1000) {
+              lastUploadTimeRef.current = now;
+              captureFrame().then(async (blob) => {
+                if (!blob) return;
 
-              // Prepend dynamic event to access logs
-              const newLog = {
-                id: Date.now(),
-                type: "auth",
-                title: `Face recognized: ${bestClass}`,
-                file: `${bestClass.toUpperCase()}_LIVE.jpg`,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                detail: "TEACHABLE CAM"
-              };
-              setLogs(prev => [newLog, ...prev]);
+                const formData = new FormData();
+                formData.append("file", blob, "capture.jpg");
+                formData.append("person_name", bestClass);
+                formData.append("device_id", "5"); // default door camera device id is 5
 
-              // Send recognized person to Adafruit dadn.face-detect
-              await updateDeviceState("dadn.face-detect", bestClass);
+                try {
+                  const res = await api.post("/devices/camera/upload", formData, {
+                    headers: {
+                      "Content-Type": "multipart/form-data"
+                    }
+                  });
+
+                  if (res.data && res.data.status === "stored") {
+                    console.log("[Camera] Image stored successfully:", res.data.data.url);
+                    
+                    const lowerClass = bestClass.toLowerCase();
+                    if (lowerClass !== "stranger" && lowerClass !== "background") {
+                      console.log("[Auto-Unlock] Recognized family member verified. Triggering local UI update and state sync...");
+                      // Optimistically change state of the door at detection time
+                      updateDeviceState("dadn.door-state", "0");
+                      // Pull latest state from Adafruit through backend 1 second later to ensure sync
+                      setTimeout(() => {
+                        refreshStates();
+                      }, 1000);
+                    }
+
+                    // Add this log dynamically to the UI log list
+                    const newLog = {
+                      id: res.data.data.id || Date.now(),
+                      type: bestClass.toLowerCase().includes("unknown") ? "alert" : "auth",
+                      title: bestClass.toLowerCase().includes("unknown") 
+                        ? `Unknown face captured!` 
+                        : `Recognized face: ${bestClass}`,
+                      file: res.data.data.url, // Real Cloudinary URL
+                      time: new Date(res.data.data.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                      detail: "CLOUDINARY STORAGE"
+                    };
+                    setLogs(prev => [newLog, ...prev]);
+                  }
+                } catch (uploadErr) {
+                  console.error("[Camera] Upload failed:", uploadErr);
+                }
+              });
             }
           } else {
             setDetectedName(null);
             setDetectionConfidence(0);
+
+            // If no face has been scanned for 10 seconds, reset the tracking refs to avoid cooldown locking.
+            if (Date.now() - lastFaceSeenTimeRef.current >= 10000) {
+              lastRecognizedNameRef.current = null;
+              lastSentTimeRef.current = 0;
+              lastUploadTimeRef.current = 0;
+            }
           }
         } catch (err) {
           console.error("Teachable prediction error:", err);
@@ -212,6 +304,20 @@ export default function SmartDoorPage() {
     }
   };
 
+  const handleDeactivateCamera = () => {
+    setIsCameraActive(false);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    setDetectedName(null);
+    setDetectionConfidence(0);
+  };
+
   useEffect(() => {
     if (isCameraActive && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
@@ -234,6 +340,23 @@ export default function SmartDoorPage() {
       await updateDeviceState("dadn.door-state", valueToSend);
     } catch (error) {
       console.error("Failed to update door state:", error);
+    }
+  };
+
+  const handleDeleteLog = async (logId: number) => {
+    try {
+      if (logId > 1000000000000) {
+        setLogs(prev => prev.filter(log => log.id !== logId));
+        return;
+      }
+      
+      const res = await api.delete(`/devices/camera/${logId}`);
+      if (res.data && res.data.status === "success") {
+        console.log("[Camera] Log deleted successfully from DB and Cloudinary.");
+        setLogs(prev => prev.filter(log => log.id !== logId));
+      }
+    } catch (err) {
+      console.error("[Camera] Failed to delete camera log:", err);
     }
   };
 
@@ -272,7 +395,7 @@ export default function SmartDoorPage() {
                 </div>
               )}
               
-              <div className="h-[540px] relative flex flex-col items-center justify-center bg-gradient-to-b from-[#1A1A1A] to-[#0E0E0E]">
+              <div className="h-[680px] relative flex flex-col items-center justify-center bg-gradient-to-b from-[#1A1A1A] to-[#0E0E0E]">
                 {isCameraActive ? (
                   <>
                     <video 
@@ -321,6 +444,15 @@ export default function SmartDoorPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* Turn Off Camera Button */}
+                    <button
+                      onClick={handleDeactivateCamera}
+                      className="absolute bottom-6 right-6 z-30 bg-black/85 hover:bg-red-600/95 text-white border border-[#262626] hover:border-red-500/50 px-5 py-2.5 rounded-xl text-xs font-mono tracking-wider uppercase shadow-[0_4px_20px_rgba(0,0,0,0.6)] transition-all duration-300 flex items-center hover:scale-105 active:scale-95 cursor-pointer"
+                    >
+                      <VideoOff className="w-4 h-4 mr-2 text-red-500 group-hover:text-white" />
+                      Turn Off Camera
+                    </button>
                   </>
                 ) : isScanning ? (
                   <div className="flex flex-col items-center">
@@ -386,13 +518,13 @@ export default function SmartDoorPage() {
 
           {/* Right Panel - Access Log */}
           <div
-            className="flex flex-col overflow-hidden transition-all duration-300 ease-in-out shrink-0 border-l border-[#262626] bg-[#0A0A0A]"
+            className="flex flex-col h-[calc(100vh-56px)] overflow-y-auto transition-all duration-300 ease-in-out shrink-0 border-l border-[#262626] bg-[#0A0A0A] custom-scrollbar"
             style={{
               width: showRightPanel ? "400px" : "0px",
               opacity: showRightPanel ? 1 : 0,
             }}
           >
-            <div className="p-6 h-full flex flex-col">
+            <div className="p-6 flex flex-col min-h-full">
               <h2 className="font-manrope font-bold text-xl text-white mb-6">Access log</h2>
               
               {/* Search */}
@@ -410,7 +542,7 @@ export default function SmartDoorPage() {
               {/* Log List */}
               <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar">
                 {filteredLogs.map((log) => (
-                  <div key={log.id} className="flex gap-4">
+                  <div key={log.id} className="flex gap-4 group/item relative">
                     <div className={`mt-1 p-2 rounded-full h-fit ${
                       log.type === "alert" 
                         ? "bg-red-500/20 text-red-500" 
@@ -427,8 +559,23 @@ export default function SmartDoorPage() {
                       )}
                     </div>
                     <div className="flex-1">
-                      <h4 className="text-white font-semibold">{log.title}</h4>
-                      <p className="text-xs text-[#ADAAAA] mt-1">{log.file}</p>
+                      <div className="flex justify-between items-start">
+                        <h4 className="text-white font-semibold">{log.title}</h4>
+                        <button 
+                          onClick={() => handleDeleteLog(log.id)}
+                          className="text-red-500 hover:text-red-400 p-1 rounded-lg transition-colors hover:bg-red-500/10 opacity-0 group-hover/item:opacity-100 focus:opacity-100"
+                          title="Delete log permanently"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {log.file.startsWith("http") ? (
+                        <a href={log.file} target="_blank" rel="noopener noreferrer" className="block mt-2 rounded-lg overflow-hidden border border-[#262626] w-24 h-16 hover:border-white transition-colors">
+                          <img src={log.file} alt={log.title} className="w-full h-full object-cover" />
+                        </a>
+                      ) : (
+                        <p className="text-xs text-[#ADAAAA] mt-1">{log.file}</p>
+                      )}
                       <div className="flex items-center text-xs text-[#5E5E5E] mt-2">
                         <Clock className="w-3 h-3 mr-1" />
                         {log.time} • {log.detail}

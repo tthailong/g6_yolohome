@@ -147,12 +147,10 @@ const INITIAL_ROOMS: { name: string; devices: (DeviceCardData & { feedName?: str
     devices: [
       {
         id: "d6",
-        name: "Front Door",
+        name: "Bedroom Door",
         subtitle: "Secured",
         status: "locked",
-        feedName: "dadn.door-state",
         icon: <LockIcon />,
-        href: "/devices/door",
       },
       {
         id: "d7",
@@ -250,6 +248,7 @@ export default function DevicesPage() {
   const { deviceStates, updateDeviceState } = useDevices();
   const [showNotifications, setShowNotifications] = useState(true);
   const [animatingFans, setAnimatingFans] = useState<Record<string, boolean>>({});
+  const [isBedroomDoorLocked, setIsBedroomDoorLocked] = useState(true);
   const lastActionTime = useRef(0);
   const prevDeviceStatesRef = useRef<Record<string, any>>({});
 
@@ -302,6 +301,12 @@ export default function DevicesPage() {
         updatedDevice.icon = <LockIcon />;
       }
 
+      if (device.id === "d6") {
+        updatedDevice.isActive = isBedroomDoorLocked;
+        updatedDevice.status = isBedroomDoorLocked ? "locked" : "unlocked";
+        updatedDevice.subtitle = isBedroomDoorLocked ? "Secured" : "Unlocked";
+      }
+
       if (device.feedName === "dadn.fan-state") {
         const isActivated = globalValue === "1";
         const rawSpeed = deviceStates["dadn.fan-speed"] || "0";
@@ -330,6 +335,12 @@ export default function DevicesPage() {
 
   const handleDeviceToggle = async (deviceId: string, nextState: boolean) => {
     lastActionTime.current = Date.now();
+    
+    if (deviceId === "d6") {
+      setIsBedroomDoorLocked(nextState);
+      return;
+    }
+
     let targetFeed = "";
     INITIAL_ROOMS.forEach(r => r.devices.forEach(d => {
       if (d.id === deviceId) targetFeed = d.feedName || "";

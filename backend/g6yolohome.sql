@@ -10,9 +10,11 @@ USE g6yolohome;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- 2. Drop Tables if they exist (Clean Start)
+DROP TABLE IF EXISTS camera;
 DROP TABLE IF EXISTS sensors;
 DROP TABLE IF EXISTS devices;
 DROP TABLE IF EXISTS device_types;
+DROP TABLE IF EXISTS live_in;
 DROP TABLE IF EXISTS home;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS admin;
@@ -29,7 +31,6 @@ CREATE TABLE admin (
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
-    role ENUM('owner', 'member') NOT NULL DEFAULT 'member',
     email VARCHAR(100) NOT NULL UNIQUE,
     phone VARCHAR(20) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
@@ -45,6 +46,17 @@ CREATE TABLE home (
     adafruitiouser VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     owner_id INT
+);
+
+CREATE TABLE live_in (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    home_id INT NOT NULL,
+    role ENUM('Owner', 'Manager', 'Member') NOT NULL DEFAULT 'Member',
+    status ENUM('pending', 'accepted', 'rejected') NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_uh_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_uh_home FOREIGN KEY (home_id) REFERENCES home(id) ON DELETE CASCADE
 );
 
 CREATE TABLE device_types (
@@ -88,8 +100,19 @@ ALTER TABLE devices
 ALTER TABLE device_types
     ADD CONSTRAINT fk_type_admin FOREIGN KEY (admin_id) REFERENCES admin(id);
 
+CREATE TABLE camera (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    device_id INT NOT NULL,
+    url VARCHAR(500) NOT NULL,
+    person_name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 ALTER TABLE sensors
     ADD CONSTRAINT fk_sensor_device FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE;
+
+ALTER TABLE camera
+    ADD CONSTRAINT fk_camera_device FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE;
 
 -- Re-enable foreign key checks
 SET FOREIGN_KEY_CHECKS = 1;
@@ -102,28 +125,33 @@ INSERT IGNORE INTO admin (id, username, password)
 VALUES (1, 'adminapp', '$2b$12$Bqb2axk3PGOD6pJTmzM.8.cqgzrn24bitbj0edwfUjiOLdh9A.c4i');
 
 -- 4.2 Main User (Owner)
-INSERT IGNORE INTO users (id, username, role, email, phone, password, admin_id) 
-VALUES (1, 'hailong', 'owner', 'superlongblue@gmail.com', '0123456789', '$2b$12$Bqb2axk3PGOD6pJTmzM.8.cqgzrn24bitbj0edwfUjiOLdh9A.c4i', 1);
+INSERT IGNORE INTO users (id, username, email, phone, password, admin_id) 
+VALUES (1, 'hailong', 'superlongblue@gmail.com', '0123456789', '$2b$12$Bqb2axk3PGOD6pJTmzM.8.cqgzrn24bitbj0edwfUjiOLdh9A.c4i', 1);
 
 -- 4.3 Default Home
 -- Note: User needs to update adafruit credentials here
 INSERT IGNORE INTO home (id, name, adafruitiokey, adafruitiouser, owner_id)
-VALUES (1, 'newhome', 'YOUR_ADAFRUIT_IO_KEY', 'YOUR_ADAFRUIT_IO_USERNAME', 1);
+VALUES (1, 'newhome', 'ADAFRUIT_IO_KEY', 'ADAFRUIT_IO_USERNAME', 1);
+
+-- 4.3.1 Seed User-Home relation (Owner accepted invitation)
+INSERT IGNORE INTO live_in (user_id, home_id, role, status)
+VALUES (1, 1, 'Owner', 'accepted');
 
 -- 4.4 Device Types
 INSERT IGNORE INTO device_types (id, type_name, icon_url, admin_id) VALUES 
 (1, 'Environment Sensor', 'https://img.icons8.com/color/48/000000/temperature--v1.png', 1),
 (2, 'Light Control', 'https://img.icons8.com/color/48/000000/light-dimming.png', 1),
-(3, 'Security System', 'https://img.icons8.com/color/48/000000/shield.png', 1),
-(4, 'Fan Control', 'https://img.icons8.com/color/48/000000/fan.png', 1);
+(3, 'Hazard Alarm', 'https://img.icons8.com/color/48/000000/shield.png', 1),
+(4, 'Fan Control', 'https://img.icons8.com/color/48/000000/fan.png', 1),
+(5, 'Access Control', 'https://img.icons8.com/color/48/000000/security-lock.png', 1);
 
 -- 4.5 Devices
 INSERT IGNORE INTO devices (id, name, device_type_id, home_id, owner_id) VALUES
 (1, 'Living Room DHT20', 1, 1, 1),
 (2, 'Smart LED', 2, 1, 1),
-(3, 'Main Entrance Security', 3, 1, 1),
+(3, 'Earthquake Detector', 3, 1, 1),
 (4, 'Ceiling Fan', 4, 1, 1),
-(5, 'Main Door Lock', 3, 1, 1);
+(5, 'Main Door Lock', 5, 1, 1);
 
 -- 4.6 Sensors and Feeds
 INSERT IGNORE INTO sensors (id, device_id, sensor_type, feed_name) VALUES
@@ -134,5 +162,5 @@ INSERT IGNORE INTO sensors (id, device_id, sensor_type, feed_name) VALUES
 (5, 3, 'earthquake', 'dadn.earthquake-detected'),
 (7, 4, 'fan', 'dadn.fan-state'),
 (8, 4, 'speed', 'dadn.fan-speed'),
-(9, 5, 'security', 'dadn.door-state'),
-(10, 5, 'face', 'dadn.face-detect');
+(9, 5, 'security', 'dadn.door-state');
+

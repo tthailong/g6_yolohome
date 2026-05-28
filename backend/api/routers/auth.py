@@ -53,6 +53,22 @@ def create_access_token(username: str, user_id: int, role: str, expires_delta: t
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_user(db: db_dependency, create_user_request: UserCreateRequest):
+    # 1. Check if email is already taken
+    existing_email = db.query(User).filter(User.email == create_user_request.email).first()
+    if existing_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+
+    # 2. Check if phone is already taken
+    existing_phone = db.query(User).filter(User.phone == create_user_request.phone).first()
+    if existing_phone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phone number already registered"
+        )
+
     create_user_model = User(
         username=create_user_request.username,
         email=create_user_request.email,
@@ -67,7 +83,7 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
-    token = create_access_token(user.username, user.id, 'user', timedelta(minutes=20))
+    token = create_access_token(user.username, user.id, 'user', timedelta(minutes=60))
 
     return {'access_token': token, 'token_type': 'bearer'}
 
@@ -76,7 +92,7 @@ async def login_admin_for_access_token(form_data: Annotated[OAuth2PasswordReques
     admin = authenticate_admin(form_data.username, form_data.password, db)
     if not admin:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate admin")
-    token = create_access_token(admin.username, admin.id, 'admin', timedelta(minutes=20))
+    token = create_access_token(admin.username, admin.id, 'admin', timedelta(minutes=60))
 
     return {'access_token': token, 'token_type': 'bearer'}
 
@@ -97,7 +113,7 @@ async def get_current_user_profile(db: db_dependency, user: Annotated[dict, Depe
         "username": user_model.username,
         "email": user_model.email,
         "phone": user_model.phone,
-        "role": user_model.role
+        "role": "User"
     }
 
 class ChangePasswordRequest(BaseModel):

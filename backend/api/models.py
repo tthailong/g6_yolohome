@@ -5,9 +5,15 @@ import enum
 from datetime import datetime
 
 # --- Enums ---
-class UserRole(str, enum.Enum):
-    owner = "owner"
-    member = "member"
+class UserHomeRole(str, enum.Enum):
+    owner = "Owner"
+    manager = "Manager"
+    member = "Member"
+
+class UserHomeStatus(str, enum.Enum):
+    pending = "pending"
+    accepted = "accepted"
+    rejected = "rejected"
 
 # --- Database Models (SQLAlchemy) ---
 class User(Base):
@@ -15,7 +21,6 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, index=True, nullable=False)
-    role = Column(Enum(UserRole), default=UserRole.member, nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     phone = Column(String(20), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
@@ -27,7 +32,6 @@ class User(Base):
     # Relationships
     supervisor = relationship("User", remote_side=[id], backref="subordinates")
     admin = relationship("Admin", back_populates="users")
-    homes = relationship("Home", back_populates="owner")
     devices = relationship("Device", back_populates="owner")
 
 class Home(Base):
@@ -41,8 +45,22 @@ class Home(Base):
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
 
     # Relationships
-    owner = relationship("User", back_populates="homes")
+    owner = relationship("User")
     devices = relationship("Device", back_populates="home")
+
+class UserHome(Base):
+    __tablename__ = "live_in"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    home_id = Column(Integer, ForeignKey("home.id", ondelete="CASCADE"), nullable=False)
+    role = Column(Enum(UserHomeRole, values_callable=lambda x: [e.value for e in x]), default=UserHomeRole.member, nullable=False)
+    status = Column(Enum(UserHomeStatus), default=UserHomeStatus.pending, nullable=False)
+    created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
+
+    # Relationships
+    user = relationship("User", backref="user_home_associations")
+    home = relationship("Home", backref="user_home_associations")
 
 class Admin(Base):
     __tablename__ = "admin"
@@ -83,6 +101,7 @@ class Device(Base):
     device_type = relationship("DeviceType", back_populates="devices")
     owner = relationship("User", back_populates="devices")
     sensors = relationship("Sensor", back_populates="device", cascade="all, delete-orphan")
+    cameras = relationship("Camera", back_populates="device", cascade="all, delete-orphan")
 
 class Sensor(Base):
     __tablename__ = "sensors"
@@ -95,3 +114,16 @@ class Sensor(Base):
 
     # Relationships
     device = relationship("Device", back_populates="sensors")
+
+class Camera(Base):
+    __tablename__ = "camera"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(Integer, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False)
+    url = Column(String(500), nullable=False)
+    person_name = Column(String(100), nullable=False)
+    created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
+
+    # Relationships
+    device = relationship("Device", back_populates="cameras")
+
