@@ -5,6 +5,7 @@ import { AuthProvider } from "@/app/context/AuthContext";
 import { AlertProvider } from "@/app/context/AlertContext";
 import { DeviceProvider } from "@/app/context/DeviceContext";
 import GlobalAlert from "@/components/dashboard/GlobalAlert";
+import GlobalVoiceListener from "@/components/dashboard/GlobalVoiceListener";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,8 @@ export default function RootLayout({
           >
             <body className="min-h-full flex flex-col relative text-white">
               <GlobalAlert />
+              {/* Add it right here! */}
+              <GlobalVoiceListener /> 
               {children}
             </body>
           </html>
