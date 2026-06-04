@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, status, HTTPException, Depends, UploadFile, File, Form, Query
 from sqlalchemy.orm import Session
 from typing import List
 import os
@@ -227,6 +227,23 @@ async def upload_camera_image(
         
         # 6. Mark as stored in cooldown manager to start the 5-minute cooldown
         cooldown_manager.mark_stored()
+
+        # Broadcast camera update to WebSockets for real-time dashboard tracking
+        try:
+            from socket_manager import manager as socket_manager
+            import asyncio
+            created_time = db_camera.created_at.isoformat() if hasattr(db_camera.created_at, 'isoformat') else datetime.now().isoformat()
+            asyncio.create_task(socket_manager.broadcast_to_home(
+                device.home_id,
+                {
+                    "type": "CAMERA_UPDATE",
+                    "person_name": face_name,
+                    "url": url,
+                    "created_at": created_time
+                }
+            ))
+        except Exception as e:
+            print(f"[WebSocket Broadcast] Error broadcasting camera update: {str(e)}")
         
         # 7. Auto-unlock the door if the person is a recognized family member
         lower_name = face_name.lower()
@@ -259,16 +276,24 @@ def get_camera_logs(db: db_dependency, user: user_dependency, limit: int = 20):
 @router.get('/camera/stats')
 def get_camera_stats(
     db: db_dependency,
-    user: user_dependency
+    user: user_dependency,
+    date: str = Query(None, description="Filter stats by date (YYYY-MM-DD)")
 ):
-    today = date.today()
-    start_of_today = datetime.combine(today, datetime.min.time())
-    end_of_today = datetime.combine(today, datetime.max.time())
+    if date:
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    else:
+        target_date = datetime.now().date()
+        
+    start_of_day = datetime.combine(target_date, datetime.min.time())
+    end_of_day = datetime.combine(target_date, datetime.max.time())
     
-    # Query all logs from today
+    # Query all logs from target_date
     logs = db.query(models.Camera).filter(
-        models.Camera.created_at >= start_of_today,
-        models.Camera.created_at <= end_of_today
+        models.Camera.created_at >= start_of_day,
+        models.Camera.created_at <= end_of_day
     ).all()
     
     # Initialize 24-hour slots

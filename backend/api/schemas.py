@@ -9,7 +9,6 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    supervisor_id: Optional[int] = None
     admin_id: Optional[int] = None
 
 class User(UserBase):
