@@ -126,12 +126,12 @@ VALUES (1, 'adminapp', '$2b$12$Bqb2axk3PGOD6pJTmzM.8.cqgzrn24bitbj0edwfUjiOLdh9A
 
 -- 4.2 Main User (Owner)
 INSERT IGNORE INTO users (id, username, email, phone, password, admin_id) 
-VALUES (1, 'hailong', 'superlongblue@gmail.com', '0123456789', '$2b$12$Bqb2axk3PGOD6pJTmzM.8.cqgzrn24bitbj0edwfUjiOLdh9A.c4i', 1);
+VALUES (1, 'hailong', 'abc@gmail.com', '0123456789', '$2b$12$Bqb2axk3PGOD6pJTmzM.8.cqgzrn24bitbj0edwfUjiOLdh9A.c4i', 1);
 
 -- 4.3 Default Home
 -- Note: User needs to update adafruit credentials here
 INSERT IGNORE INTO home (id, name, adafruitiokey, adafruitiouser, owner_id)
-VALUES (1, 'newhome', 'ADAFRUIT_IO_KEY', 'ADAFRUIT_IO_USERNAME', 1);
+VALUES (1, 'newhome', 'YOUR_ADAFRUIT_IO_KEY', 'YOUR_ADAFRUIT_IO_USERNAME', 1);
 
 -- 4.3.1 Seed User-Home relation (Owner accepted invitation)
 INSERT IGNORE INTO live_in (user_id, home_id, role, status)

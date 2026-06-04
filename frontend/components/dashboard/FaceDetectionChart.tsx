@@ -37,7 +37,7 @@ function ViewToggle({ zoom, onChange }: { zoom: boolean; onChange: (z: boolean) 
   );
 }
 
-export default function FaceDetectionChart() {
+export default function FaceDetectionChart({ selectedDate }: { selectedDate: Date }) {
   const [zoom, setZoom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +48,12 @@ export default function FaceDetectionChart() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await api.get("/devices/camera/stats");
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(selectedDate.getDate()).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${day}`;
+
+        const res = await api.get(`/devices/camera/stats?date=${formattedDate}`);
         if (res.data && res.data.length === 24) {
           const mapped = res.data.map((item: any) => ({
             family: item.family,
@@ -65,7 +70,7 @@ export default function FaceDetectionChart() {
     // Refresh stats every 10 seconds for real-time responsiveness
     const interval = setInterval(fetchStats, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedDate]);
 
   const rawMax = Math.max(...chartData.map(d => Math.max(d.family, d.unknown)), 0);
   const MAX = rawMax > 5 ? Math.ceil(rawMax / 5) * 5 : 5;
@@ -74,9 +79,12 @@ export default function FaceDetectionChart() {
   // In zoom mode, bar group gets 4× more space → bars are visually bigger
   const barW  = zoom ? 28 : 12; // px per individual bar
 
+
+  const dateStr = selectedDate.toLocaleDateString();
+
   return (
     <div
-      className="flex flex-col gap-6 p-6 md:p-8 rounded-xl w-full"
+      className="flex flex-col gap-6 p-6 md:p-8 rounded-xl w-full animate-fade-in"
       style={{ background: "#131313", border: "1px solid #484847" }}
     >
       {/* ── Header ─────────────────────────────────────── */}
@@ -89,7 +97,7 @@ export default function FaceDetectionChart() {
             className="font-jakarta font-bold text-[10px] uppercase tracking-widest"
             style={{ color: "#ADAAAA", letterSpacing: "1.2px" }}
           >
-            Visitor Classification Across 24H
+            Visitor Classification — {dateStr}
           </p>
         </div>
 

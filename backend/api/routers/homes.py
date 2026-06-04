@@ -91,7 +91,7 @@ def delete_home(db: db_dependency, user: user_dependency, home_id: int):
 
 @router.put('/')
 def update_home(db: db_dependency, user: user_dependency, home_id: int, home: HomeCreate):
-    # Only Owner or Admin can update home settings!
+    # Only Owner or Manager can update home settings!
     user_id = user.get('id')
     x = db.query(UserHome).filter(
         UserHome.user_id == user_id,
@@ -145,7 +145,7 @@ def invite_member(db: db_dependency, user: user_dependency, req: InviteMemberReq
     try:
         target_role = UserHomeRole(req.role)
     except ValueError:
-        raise HTTPException(status_code=400, detail=f"Invalid role: {req.role}. Choose from: Owner, Admin, Member.")
+        raise HTTPException(status_code=400, detail=f"Invalid role: {req.role}. Choose from: Owner, Manager, Member.")
     
     if existing:
         if existing.status == UserHomeStatus.accepted:

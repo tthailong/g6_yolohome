@@ -26,11 +26,9 @@ class User(Base):
     password = Column(String(255), nullable=False)
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
     
-    supervisor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     admin_id = Column(Integer, ForeignKey("admin.id"), nullable=True)
 
     # Relationships
-    supervisor = relationship("User", remote_side=[id], backref="subordinates")
     admin = relationship("Admin", back_populates="users")
     devices = relationship("Device", back_populates="owner")
 

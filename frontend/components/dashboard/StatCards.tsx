@@ -4,11 +4,33 @@ import { useEffect, useState } from "react";
 import { dashboardService, SensorSummary } from "@/lib/api/dashboard";
 import { WebSocketClient } from "@/lib/api/socket";
 import { useDevices } from "@/app/context/DeviceContext";
+import api from "@/lib/api/client";
 
-function TemperatureCard({ value }: { value: string | number }) {
+const getSensorStatus = (updatedAt?: string | null) => {
+  if (!updatedAt) return { label: "Offline", color: "#FF5252", isStale: true };
+  const lastUpdate = new Date(updatedAt).getTime();
+  const now = new Date().getTime();
+  const diffMs = now - lastUpdate;
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  if (diffMins <= 5) {
+    return { label: "Online", color: "#FDD34D", isStale: false };
+  } else if (diffMins < 60) {
+    return { label: `Offline (${diffMins}m ago)`, color: "#FF5252", isStale: true };
+  } else if (diffMins < 1440) {
+    const hours = Math.floor(diffMins / 60);
+    return { label: `Offline (${hours}h ago)`, color: "#FF5252", isStale: true };
+  } else {
+    const days = Math.floor(diffMins / 1440);
+    return { label: `Offline (${days}d ago)`, color: "#FF5252", isStale: true };
+  }
+};
+
+function TemperatureCard({ value, updatedAt }: { value: string | number; updatedAt?: string | null }) {
+  const status = getSensorStatus(updatedAt);
   return (
     <div
-      className="flex flex-col gap-2 p-6 pb-8 rounded-xl overflow-hidden"
+      className="flex flex-col gap-2 p-6 pb-8 rounded-xl overflow-hidden animate-fade-in"
       style={{ background: "#131313", border: "1px solid #484847" }}
     >
       <p className="font-jakarta font-bold text-[11px] uppercase tracking-widest" style={{ color: "#ADAAAA", letterSpacing: "1.2px" }}>
@@ -19,21 +41,20 @@ function TemperatureCard({ value }: { value: string | number }) {
         <span className="font-manrope font-bold text-2xl pb-1" style={{ color: "#FDD34D" }}>°C</span>
       </div>
       <div className="flex items-center gap-2 pt-1">
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0.7 6L0 5.3L3.7 1.575L5.7 3.575L8.3 1H7V0H10V3H9V1.7L5.7 5L3.7 3L0.7 6Z" fill="#FDD34D" />
-        </svg>
-        <span className="font-manrope font-bold text-[10px]" style={{ color: "#ADAAAA" }}>
-          Live Reading
+        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: status.color }} />
+        <span className="font-manrope font-bold text-[10px]" style={{ color: status.isStale ? "#ADAAAA" : status.color }}>
+          {status.label}
         </span>
       </div>
     </div>
   );
 }
 
-function HumidityCard({ value }: { value: string | number }) {
+function HumidityCard({ value, updatedAt }: { value: string | number; updatedAt?: string | null }) {
+  const status = getSensorStatus(updatedAt);
   return (
     <div
-      className="flex flex-col gap-2 p-6 pb-8 rounded-xl overflow-hidden"
+      className="flex flex-col gap-2 p-6 pb-8 rounded-xl overflow-hidden animate-fade-in"
       style={{ background: "#131313", border: "1px solid #484847" }}
     >
       <p className="font-jakarta font-bold text-[11px] uppercase tracking-widest" style={{ color: "#ADAAAA", letterSpacing: "1.2px" }}>
@@ -44,43 +65,81 @@ function HumidityCard({ value }: { value: string | number }) {
         <span className="font-manrope font-bold text-2xl pb-1" style={{ color: "#F5D1FB" }}>%</span>
       </div>
       <div className="flex items-center gap-2 pt-1">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4.3 7.3L7.825 3.775L7.125 3.075L4.3 5.9L2.875 4.475L2.175 5.175L4.3 7.3ZM5 10C4.30833 10 3.65833 9.86875 3.05 9.60625C2.44167 9.34375 1.9125 8.9875 1.4625 8.5375C1.0125 8.0875 0.65625 7.55833 0.39375 6.95C0.13125 6.34167 0 5.69167 0 5C0 4.30833 0.13125 3.65833 0.39375 3.05C0.65625 2.44167 1.0125 1.9125 1.4625 1.4625C1.9125 1.0125 2.44167 0.65625 3.05 0.39375C3.65833 0.13125 4.30833 0 5 0C5.69167 0 6.34167 0.13125 6.95 0.39375C7.55833 0.65625 8.0875 1.0125 8.5375 1.4625C8.9875 1.9125 9.34375 2.44167 9.60625 3.05C9.86875 3.65833 10 4.30833 10 5C10 5.69167 9.86875 6.34167 9.60625 6.95C9.34375 7.55833 8.9875 8.0875 8.5375 8.5375C8.0875 8.9875 7.55833 9.34375 6.95 9.60625C6.34167 9.86875 5.69167 10 5 10ZM5 9C6.11667 9 7.0625 8.6125 7.8375 7.8375C8.6125 7.0625 9 6.11667 9 5C9 3.88333 8.6125 2.9375 7.8375 2.1625C7.0625 1.3875 6.11667 1 5 1C3.88333 1 2.9375 1.3875 2.1625 2.1625C1.3875 2.9375 1 3.88333 1 5C1 6.11667 1.3875 7.0625 2.1625 7.8375C2.9375 8.6125 3.88333 9 5 9Z" fill="#F5D1FB" />
-        </svg>
-        <span className="font-manrope font-bold text-[10px]" style={{ color: "#F5D1FB" }}>
-          Live Humidity
+        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: status.color }} />
+        <span className="font-manrope font-bold text-[10px]" style={{ color: status.isStale ? "#ADAAAA" : status.color }}>
+          {status.label}
         </span>
       </div>
     </div>
   );
 }
 
-function MembersCard() {
+function MembersCard({ members, cameraLogs }: { members: any[]; cameraLogs: any[] }) {
+  const now = new Date().getTime();
+  const activeMemberNames = new Set<string>();
+
+  cameraLogs.forEach(log => {
+    const logTime = new Date(log.created_at).getTime();
+    const diffHours = (now - logTime) / (1000 * 60 * 60);
+    
+    // Member is active if recognized in the last 12 hours
+    if (diffHours < 12) {
+      const name = log.person_name?.trim().toLowerCase();
+      if (name && name !== "stranger" && name !== "background") {
+        activeMemberNames.add(name);
+      }
+    }
+  });
+
+  const activeMembers = members.filter(m => {
+    const nameLower = (m.name || m.username || "").trim().toLowerCase();
+    return activeMemberNames.has(nameLower);
+  });
+
+  const activeCount = activeMembers.length;
+
   return (
     <div
-      className="flex flex-col gap-2 p-6 rounded-xl overflow-hidden"
+      className="flex flex-col gap-2 p-6 rounded-xl overflow-hidden animate-fade-in"
       style={{ background: "#131313", border: "1px solid #484847" }}
     >
       <p className="font-jakarta font-bold text-[11px] uppercase tracking-widest" style={{ color: "#ADAAAA", letterSpacing: "1.2px" }}>
         Current Members
       </p>
       <div className="flex items-end gap-2 h-14">
-        <span className="font-manrope font-extrabold text-5xl text-white leading-none">5</span>
+        <span className="font-manrope font-extrabold text-5xl text-white leading-none">
+          {activeCount}
+        </span>
         <span className="font-manrope font-bold text-2xl pb-1" style={{ color: "#ADAAAA" }}>active</span>
       </div>
-      <div className="flex items-center pt-1" style={{ gap: "-4px" }}>
-        <img
-          src="https://api.builder.io/api/v1/image/assets/TEMP/992b15a84072046ffa64a851d688cbe2fdbe1a78?width=48"
-          alt="Member"
-          className="w-6 h-6 rounded-sm object-cover flex-shrink-0"
-          style={{ border: "1px solid #484847" }}
-        />
-        <div
-          className="w-6 h-6 flex items-center justify-center rounded-sm -ml-1 flex-shrink-0"
-          style={{ background: "#262626", border: "1px solid #484847" }}
-        >
-          <span className="font-manrope font-bold text-[8px] text-white">+2</span>
-        </div>
+      <div className="flex items-center pt-1 -space-x-1.5 overflow-hidden">
+        {activeMembers.slice(0, 3).map((member, idx) => {
+          const initials = (member.name || member.username || "U")
+            .split(" ")
+            .map((n: string) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+          return (
+            <div
+              key={member.id || idx}
+              className="w-6 h-6 rounded-full bg-[#262626] border border-[#484847] flex items-center justify-center text-white text-[8px] font-bold font-manrope flex-shrink-0"
+              title={`${member.name} (Active)`}
+            >
+              {initials}
+            </div>
+          );
+        })}
+        {activeCount > 3 && (
+          <div
+            className="w-6 h-6 flex items-center justify-center rounded-full bg-[#262626] border border-[#484847] flex-shrink-0"
+          >
+            <span className="font-manrope font-bold text-[8px] text-white">+{activeCount - 3}</span>
+          </div>
+        )}
+        {activeCount === 0 && (
+          <span className="text-[10px] text-[#ADAAAA] italic">No members detected recently</span>
+        )}
       </div>
     </div>
   );
@@ -89,15 +148,31 @@ function MembersCard() {
 export default function StatCards() {
   const { selectedHomeId } = useDevices();
   const [data, setData] = useState<SensorSummary[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [cameraLogs, setCameraLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!selectedHomeId) return;
 
-    const fetchSummary = async () => {
+    const fetchData = async () => {
       try {
         const summary = await dashboardService.getSummary(selectedHomeId);
         setData(summary);
+
+        try {
+          const membersRes = await api.get(`/homes/${selectedHomeId}/members`);
+          setMembers(membersRes.data);
+        } catch (err) {
+          console.error("Failed to fetch home members:", err);
+        }
+
+        try {
+          const cameraLogsRes = await api.get("/devices/camera/logs");
+          setCameraLogs(cameraLogsRes.data);
+        } catch (err) {
+          console.error("Failed to fetch camera logs:", err);
+        }
       } catch (error) {
         console.error("Failed to fetch dashboard summary:", error);
       } finally {
@@ -105,17 +180,30 @@ export default function StatCards() {
       }
     };
 
-    fetchSummary();
+    fetchData();
     
     // Setup WebSocket for real-time updates
     const ws = new WebSocketClient(selectedHomeId, (message) => {
       if (message.type === "SENSOR_UPDATE") {
         setData(prevData => prevData.map(sensor => {
           if (sensor.feed_name === message.feed_name) {
-             return { ...sensor, last_value: message.value };
+             return { 
+               ...sensor, 
+               last_value: message.value,
+               updated_at: new Date().toISOString()
+             };
           }
           return sensor;
         }));
+      } else if (message.type === "CAMERA_UPDATE") {
+        setCameraLogs(prev => [
+          {
+            person_name: message.person_name,
+            url: message.url,
+            created_at: message.created_at
+          },
+          ...prev
+        ]);
       }
     });
 
@@ -129,9 +217,9 @@ export default function StatCards() {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
-      <TemperatureCard value={tempSensor?.last_value || "--"} />
-      <HumidityCard value={humidSensor?.last_value || "--"} />
-      <MembersCard />
+      <TemperatureCard value={tempSensor?.last_value || "--"} updatedAt={tempSensor?.updated_at} />
+      <HumidityCard value={humidSensor?.last_value || "--"} updatedAt={humidSensor?.updated_at} />
+      <MembersCard members={members} cameraLogs={cameraLogs} />
     </div>
   );
 }
