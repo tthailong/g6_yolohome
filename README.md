@@ -98,6 +98,12 @@ ADAFRUIT_IO_KEY=YOUR_ADAFRUIT_IO_KEY
 CLOUDINARY_CLOUD_NAME=YOUR_CLOUDINARY_CLOUD_NAME
 CLOUDINARY_API_KEY=YOUR_CLOUDINARY_API_KEY
 CLOUDINARY_API_SECRET=YOUR_CLOUDINARY_API_SECRET
+
+# SMTP Credentials
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=YOUR_SMTP_USERNAME
+SMTP_PASSWORD=YOUR_SMTP_PASSWORD
 ```
 
 Create a `.env` file in the `frontend/` directory with the following content:
@@ -136,16 +142,18 @@ g6_yolohome/
 ├── backend/                   # FastAPI Backend
 │   ├── api/                   # API Core logic
 │   │   ├── routers/           # API Route Handlers
+│   │   ├── adafruit_utils.py  # Adafruit IO utils
+│   │   ├── database.py        # Connection setup
+│   │   ├── deps.py            # Dependencies
+│   │   ├── email_utils.py     # Email utils
 │   │   ├── main.py            # Server entry point
 │   │   ├── models.py          # Database models
-│   │   ├── schemas.py         # Pydantic models
-│   │   ├── database.py        # Connection setup
 │   │   ├── mqtt_manager.py    # MQTT Manager
-│   │   ├── deps.py            # Dependencies
+│   │   ├── schemas.py         # Pydantic models
 │   │   ├── socket_manager.py  # Socket Manager
 │   │   └── .env               # Environment variables
-│   ├── requirements.txt       # Dependencies
-│   └── g6yolohome.sql         # Database Initialization
+│   ├── g6yolohome.sql         # Database Initialization
+│   └── requirements.txt       # Dependencies
 ├── frontend/                  # Next.js Frontend
 │   ├── app/                   # App Router pages
 │   │   ├── contexts/          # Context pages
