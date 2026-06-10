@@ -77,13 +77,32 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
     ? `Thermal Analysis - ${selectedDate.toLocaleDateString()}`
     : `Humidity Analysis - ${selectedDate.toLocaleDateString()}`;
 
+  const historyCacheRef = useRef<Record<string, AdafruitData[]>>({});
   const [containerW, setContainerW] = useState(0);
 
+  // Clear cache if selectedHomeId changes
   useEffect(() => {
-    setHistory([]); // Clear history when tab or date changes to avoid showing wrong data
-    const fetchHistory = async () => {
-      if (!selectedDate || !selectedHomeId) return;
+    historyCacheRef.current = {};
+  }, [selectedHomeId]);
+
+  useEffect(() => {
+    if (!selectedDate || !selectedHomeId) return;
+
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    const cacheKey = `${dateStr}-${activeTab}`;
+
+    if (historyCacheRef.current[cacheKey]) {
+      setHistory(historyCacheRef.current[cacheKey]);
+      setLoading(false);
+    } else {
+      setHistory([]);
       setLoading(true);
+    }
+
+    const fetchHistory = async () => {
       try {
         // 1. Get summary to find the correct sensor ID for this home
         const summary = await dashboardService.getSummary(selectedHomeId);
@@ -91,22 +110,16 @@ export default function TemperatureChart({ selectedDate }: { selectedDate: Date 
         
         if (!sensor) {
           console.warn(`No sensor found for type: ${activeTab}`);
-          // Don't clear history immediately if it already has data, 
-          // as this might be a temporary API glitch
           setHistory(prev => prev.length > 0 ? prev : []);
           setLoading(false);
           return;
         }
 
         // 2. Fetch history for that sensor
-        const year = selectedDate.getFullYear();
-        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-        const day = String(selectedDate.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
-        
         const data = await dashboardService.getHistory(sensor.sensor_id, dateStr);
         if (Array.isArray(data)) {
           setHistory(data);
+          historyCacheRef.current[cacheKey] = data;
         }
       } catch (error) {
         console.error("Failed to fetch history:", error);

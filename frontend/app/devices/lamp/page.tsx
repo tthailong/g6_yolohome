@@ -31,7 +31,6 @@ export default function SmartLightPage() {
   const router = useRouter();
   const { deviceStates, updateDeviceState } = useDevices();
   const [showRightPanel, setShowRightPanel] = useState(true);
-  const [isFanAnimating, setIsFanAnimating] = useState(false);
 
   const isOn = deviceStates["dadn.led-state"] === "1";
   const rawBrightness = deviceStates["dadn.led-sate"] || "85";
@@ -39,23 +38,6 @@ export default function SmartLightPage() {
 
   const brightnessTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastActionTime = useRef(0);
-  const prevFanStateRef = useRef<string | null>(null);
-
-  // Monitor fan state for sidebar animation
-  useEffect(() => {
-    const currentFanState = deviceStates["dadn.fan-state"];
-    if (currentFanState === "1" && prevFanStateRef.current !== "1") {
-      setIsFanAnimating(true);
-      const timer = setTimeout(() => setIsFanAnimating(false), 1500);
-      return () => clearTimeout(timer);
-    }
-    
-    if (currentFanState === "0") {
-      setIsFanAnimating(false);
-    }
-    
-    prevFanStateRef.current = currentFanState;
-  }, [deviceStates["dadn.fan-state"]]);
 
   const handleBrightnessChange = (value: number) => {
     if (brightnessTimerRef.current) {
@@ -80,7 +62,7 @@ export default function SmartLightPage() {
       const valueToSend = nextState ? "1" : "0";
       await updateDeviceState("dadn.led-state", valueToSend);
     } catch (error) {
-      console.error("Failed to control LED state:", error);
+      console.error("Failed to control light state:", error);
     }
   };
 
@@ -92,7 +74,7 @@ export default function SmartLightPage() {
         <LightTopNav 
           showNotifications={false}
           onToggleNotifications={() => {}}
-          title="Main Chandelier"
+          title="Chandelier Control"
         />
 
         <main className="flex-1 mt-14 overflow-hidden flex flex-row relative">
@@ -122,7 +104,7 @@ export default function SmartLightPage() {
             {/* Header */}
             <div className="text-center mb-10 w-full relative">
               <h3 className="font-jakarta text-[10px] uppercase tracking-widest text-[#ADAAAA] mb-2">Device Status</h3>
-              <h1 className="font-manrope font-extrabold text-4xl text-white tracking-tight">Main Light</h1>
+              <h1 className="font-manrope font-extrabold text-4xl text-white tracking-tight">Main Chandelier</h1>
             </div>
 
             {/* Central Graphic */}
@@ -178,7 +160,7 @@ export default function SmartLightPage() {
                 />
                 <input
                   type="range"
-                  min="0"
+                  min="1"
                   max="100"
                   value={brightness}
                   onChange={(e) => handleBrightnessChange(parseInt(e.target.value))}
@@ -195,17 +177,17 @@ export default function SmartLightPage() {
             {/* Automated Schedule */}
             <div className="w-full max-w-[500px]">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-manrope font-bold text-lg text-white">Automated Schedule</h3>
+                <h3 className="font-manrope font-bold text-lg text-white">Light Schedule</h3>
                 <button className="flex items-center gap-1.5 font-jakarta font-bold text-[11px] uppercase tracking-widest text-[#FDD34D] hover:underline">
                   <span className="text-sm leading-none">+</span> Add New Rule
                 </button>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
-                {/* Morning Warmth */}
+                {/* Morning Mode */}
                 <div className="flex-1 rounded-2xl p-5" style={{ background: "#1A1A1A" }}>
                   <div className="flex items-start justify-between mb-8">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(245,209,251,0.1)", color: "#F5D1FB" }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 4V2M12 22V20M4 12H2M22 12H20M6.34 6.34L4.93 4.93M17.66 17.66L19.07 19.07M17.66 6.34L19.07 4.93M6.34 17.66L4.93 19.07M12 18C8.686 18 6 15.314 6 12C6 8.686 8.686 6 12 6C15.314 6 18 8.686 18 12C18 15.314 15.314 18 12 18Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 4V2M12 22V20M4 12H2M22 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                     </div>
                     {/* Toggle Component */}
                     <div className="w-10 h-5 rounded-full flex items-center px-0.5 cursor-pointer" style={{ background: "#484847" }}>
@@ -213,16 +195,16 @@ export default function SmartLightPage() {
                     </div>
                   </div>
                   <div>
-                    <p className="font-jakarta text-[10px] text-[#ADAAAA] mb-1">Morning Warmth</p>
-                    <p className="font-manrope font-bold text-sm text-white mb-4">07:30 AM — 09:00 AM</p>
+                    <p className="font-jakarta text-[10px] text-[#ADAAAA] mb-1">Morning Mode</p>
+                    <p className="font-manrope font-bold text-sm text-white mb-4">06:00 AM — 08:30 AM</p>
                     <div className="flex items-center gap-2 font-jakarta text-[10px] text-[#ADAAAA]">
                       <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 0L8.5 5.5L14 7L8.5 8.5L7 14L5.5 8.5L0 7L5.5 5.5L7 0Z" fill="currentColor"/></svg>
-                      Gradual Increase to 60%
+                      Set Brightness to 30%
                     </div>
                   </div>
                 </div>
 
-                {/* Night Mode */}
+                {/* Sleep Mode */}
                 <div className="flex-1 rounded-2xl p-5" style={{ background: "#1A1A1A" }}>
                   <div className="flex items-start justify-between mb-8">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(173,170,170,0.1)", color: "#ADAAAA" }}>
@@ -234,11 +216,11 @@ export default function SmartLightPage() {
                     </div>
                   </div>
                   <div>
-                    <p className="font-jakarta text-[10px] text-[#ADAAAA] mb-1">Night Mode</p>
+                    <p className="font-jakarta text-[10px] text-[#ADAAAA] mb-1">Sleep Mode</p>
                     <p className="font-manrope font-bold text-sm text-white mb-4">11:00 PM — 06:00 AM</p>
                     <div className="flex items-center gap-2 font-jakarta text-[10px] text-[#ADAAAA]">
                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 4V2M12 20V22M4 12H2M22 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                      Auto Shut-off
+                      Auto Off
                     </div>
                   </div>
                 </div>
@@ -246,7 +228,7 @@ export default function SmartLightPage() {
             </div>
           </div>
 
-          {/* ── Right Column: Devices List (Toggleable) ── */}
+          {/* ── Right Column: Other Devices ── */}
           <div
             className="flex flex-col overflow-hidden transition-all duration-300 ease-in-out shrink-0"
             style={{
@@ -270,7 +252,7 @@ export default function SmartLightPage() {
                     <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#262626] text-[#ADAAAA]">
                       <svg 
                         width="20" height="20" viewBox="0 0 24 24" fill="none"
-                        className={isFanAnimating ? "animate-spin-slow" : ""}
+                        className={deviceStates["dadn.fan-state"] === "1" ? "animate-spin-slow" : ""}
                         style={{ animationDuration: '2s' }}
                       >
                         <path d="M10.85 12c0-1.25-.11-2.43-.31-3.53C10.15 6.44 9.19 5 7.81 5c-1.52 0-2.75 2.1-2.75 4.69 0 2.14.85 3.93 2.1 4.51.52.24 1.14.3 1.76.3H10.85Z" fill="currentColor"/>

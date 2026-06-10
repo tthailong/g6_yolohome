@@ -39,7 +39,6 @@ export default function SmartFanPage() {
   const router = useRouter();
   const { deviceStates, updateDeviceState } = useDevices();
   const [showRightPanel, setShowRightPanel] = useState(true);
-  const [isAnimating, setIsAnimating] = useState(false);
 
   const isOn = deviceStates["dadn.fan-state"] === "1";
   const rawSpeed = deviceStates["dadn.fan-speed"] || "50";
@@ -47,19 +46,6 @@ export default function SmartFanPage() {
 
   const speedTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastActionTime = useRef(0);
-
-  // Trigger temporary spin when turned on
-  useEffect(() => {
-    if (isOn) {
-      setIsAnimating(true);
-      const timer = setTimeout(() => {
-        setIsAnimating(false);
-      }, 1200); // Spin for 3 seconds
-      return () => clearTimeout(timer);
-    } else {
-      setIsAnimating(false);
-    }
-  }, [isOn]);
 
   const handleSpeedChange = (value: number) => {
     if (speedTimerRef.current) {
@@ -162,7 +148,7 @@ export default function SmartFanPage() {
                 }}
               >
                 <div style={{ color: isOn ? "#5C4900" : "#ADAAAA" }}>
-                  <FanIcon isOn={isAnimating} />
+                  <FanIcon isOn={isOn} />
                 </div>
               </div>
             </div>

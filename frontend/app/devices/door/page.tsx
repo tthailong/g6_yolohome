@@ -79,6 +79,9 @@ export default function SmartDoorPage() {
     }
   ]);
 
+  const [limit, setLimit] = useState(20);
+  const [hasMore, setHasMore] = useState(true);
+
   // Load Teachable Machine scripts dynamically
   useEffect(() => {
     const loadScripts = async () => {
@@ -112,7 +115,7 @@ export default function SmartDoorPage() {
     if (model) return;
     setIsModelLoading(true);
     try {
-      const modelURL = "https://teachablemachine.withgoogle.com/models/NmP3ZyqqY/";
+      const modelURL = process.env.NEXT_PUBLIC_TEACHABLE_MACHINE_URL;
       const checkpointURL = modelURL + "model.json";
       const metadataURL = modelURL + "metadata.json";
       const loadedModel = await (window as any).tmImage.load(checkpointURL, metadataURL);
@@ -130,12 +133,27 @@ export default function SmartDoorPage() {
     return new Promise((resolve) => {
       if (!videoRef.current) return resolve(null);
       try {
+        const video = videoRef.current;
+        const videoWidth = video.videoWidth || 640;
+        const videoHeight = video.videoHeight || 480;
+
+        // Crop centered square
+        const size = Math.min(videoWidth, videoHeight);
+        const sx = (videoWidth - size) / 2;
+        const sy = (videoHeight - size) / 2;
+
         const canvas = document.createElement("canvas");
-        canvas.width = videoRef.current.videoWidth || 640;
-        canvas.height = videoRef.current.videoHeight || 480;
+        canvas.width = size;
+        canvas.height = size;
         const ctx = canvas.getContext("2d");
         if (ctx) {
-          ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+          // Flip horizontally to reverse the mirrored display back to normal
+          ctx.translate(size, 0);
+          ctx.scale(-1, 1);
+
+          // Draw the square crop of the video
+          ctx.drawImage(video, sx, sy, size, size, 0, 0, size, size);
+          
           canvas.toBlob((blob) => {
             resolve(blob);
           }, "image/jpeg", 0.85);
@@ -149,30 +167,43 @@ export default function SmartDoorPage() {
     });
   };
 
-  // Fetch camera logs from DB on mount
+  // Fetch camera logs from DB
   useEffect(() => {
     const fetchCameraLogs = async () => {
       try {
-        const res = await api.get("/devices/camera/logs");
-        if (res.data && res.data.length > 0) {
-          const fetchedLogs = res.data.map((c: any) => ({
-            id: c.id,
-            type: c.person_name.toLowerCase().includes("unknown") ? "alert" : "auth",
-            title: c.person_name.toLowerCase().includes("unknown") 
-              ? `Unknown face captured!` 
-              : `Recognized face: ${c.person_name}`,
-            file: c.url,
-            time: new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            detail: "DB RECORD"
-          }));
-          setLogs(fetchedLogs);
+        const res = await api.get(`/devices/camera/logs?limit=${limit}`);
+        if (res.data) {
+          setHasMore(res.data.length === limit);
+          if (res.data.length > 0) {
+            const fetchedLogs = res.data
+              .filter((c: any) => c.person_name.toLowerCase() !== "background")
+              .map((c: any) => {
+                const lowerName = c.person_name.toLowerCase();
+                const logDate = new Date(c.created_at);
+                const day = String(logDate.getDate()).padStart(2, '0');
+                const month = String(logDate.getMonth() + 1).padStart(2, '0');
+                const year = logDate.getFullYear();
+                
+                return {
+                  id: c.id,
+                  type: lowerName.includes("unknown") || lowerName.includes("stranger") ? "alert" : "auth",
+                  title: lowerName.includes("unknown") || lowerName.includes("stranger")
+                    ? `Stranger` 
+                    : `Recognized face: ${c.person_name}`,
+                  file: c.url,
+                  time: new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  detail: `${day}/${month}/${year}`
+                };
+              });
+            setLogs(fetchedLogs);
+          }
         }
       } catch (err) {
-        console.error("Failed to fetch camera logs on mount:", err);
+        console.error("Failed to fetch camera logs:", err);
       }
     };
     fetchCameraLogs();
-  }, []);
+  }, [limit]);
 
   // Run real-time face detection loop
   useEffect(() => {
@@ -233,18 +264,25 @@ export default function SmartDoorPage() {
                       }, 1000);
                     }
 
-                    // Add this log dynamically to the UI log list
-                    const newLog = {
-                      id: res.data.data.id || Date.now(),
-                      type: bestClass.toLowerCase().includes("unknown") ? "alert" : "auth",
-                      title: bestClass.toLowerCase().includes("unknown") 
-                        ? `Unknown face captured!` 
-                        : `Recognized face: ${bestClass}`,
-                      file: res.data.data.url, // Real Cloudinary URL
-                      time: new Date(res.data.data.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                      detail: "CLOUDINARY STORAGE"
-                    };
-                    setLogs(prev => [newLog, ...prev]);
+                    if (lowerClass !== "background") {
+                      const logDate = new Date(res.data.data.created_at);
+                      const day = String(logDate.getDate()).padStart(2, '0');
+                      const month = String(logDate.getMonth() + 1).padStart(2, '0');
+                      const year = logDate.getFullYear();
+
+                      // Add this log dynamically to the UI log list
+                      const newLog = {
+                        id: res.data.data.id || Date.now(),
+                        type: lowerClass.includes("unknown") || lowerClass.includes("stranger") ? "alert" : "auth",
+                        title: lowerClass.includes("unknown") || lowerClass.includes("stranger")
+                          ? `Stranger!` 
+                          : `Recognized face: ${bestClass}`,
+                        file: res.data.data.url, // Real Cloudinary URL
+                        time: new Date(res.data.data.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        detail: `${day}/${month}/${year}`
+                      };
+                      setLogs(prev => [newLog, ...prev]);
+                    }
                   }
                 } catch (uploadErr) {
                   console.error("[Camera] Upload failed:", uploadErr);
@@ -290,7 +328,13 @@ export default function SmartDoorPage() {
   const handleActivateCamera = async () => {
     setIsScanning(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 720 }, 
+          height: { ideal: 720 },
+          aspectRatio: { ideal: 1.0 }
+        } 
+      });
       streamRef.current = stream;
       
       setTimeout(() => {
@@ -360,11 +404,28 @@ export default function SmartDoorPage() {
     }
   };
 
-  // Filter logs by search query
-  const filteredLogs = logs.filter(log => 
-    log.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.detail.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter and sort logs by time descending (latest first, e.g., 14:45, 12:30, 09:58, ...)
+  const filteredLogs = logs
+    .filter(log => 
+      log.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.detail.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      const timeToMinutes = (timeStr: string): number => {
+        const ampmMatch = timeStr.match(/(\d+):(\d+)\s*(AM|PM|am|pm)?/);
+        if (!ampmMatch) return 0;
+        let hours = parseInt(ampmMatch[1], 10);
+        const minutes = parseInt(ampmMatch[2], 10);
+        const ampm = ampmMatch[3];
+        if (ampm) {
+          const isPM = ampm.toUpperCase() === "PM";
+          if (isPM && hours < 12) hours += 12;
+          if (!isPM && hours === 12) hours = 0;
+        }
+        return hours * 60 + minutes;
+      };
+      return timeToMinutes(b.time) - timeToMinutes(a.time);
+    });
 
   return (
     <div className="flex min-h-screen bg-[#0E0E0E] text-white font-sans overflow-hidden">
@@ -397,24 +458,25 @@ export default function SmartDoorPage() {
               
               <div className="h-[680px] relative flex flex-col items-center justify-center bg-gradient-to-b from-[#1A1A1A] to-[#0E0E0E]">
                 {isCameraActive ? (
-                  <>
+                  <div className="relative h-full aspect-square">
                     <video 
                       ref={videoRef}
                       autoPlay 
                       playsInline
-                      className="w-full h-full object-cover brightness-110 contrast-110"
+                      className="w-full h-full object-cover brightness-110 contrast-110 rounded-2xl"
+                      style={{ transform: "scaleX(-1)" }}
                     />
                     {/* Scanline Effect */}
-                    <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] bg-[length:100%_4px,3px_100%]" />
+                    <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] bg-[length:100%_4px,3px_100%] rounded-2xl" />
                     
                     {/* Pulsing detection indicator overlay */}
                     {detectedName && (
-                      <div className="absolute inset-4 border-2 border-green-500/50 rounded-lg pointer-events-none animate-pulse flex flex-col items-center justify-between p-6 z-20">
+                      <div className="absolute inset-4 border-2 border-green-500/50 rounded-2xl pointer-events-none animate-pulse flex flex-col items-center justify-between p-6 z-20">
                         {/* Corner Brackets */}
-                        <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-400" />
-                        <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-400" />
-                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-400" />
-                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-400" />
+                        <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-400 rounded-tl-lg" />
+                        <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-400 rounded-tr-lg" />
+                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-400 rounded-bl-lg" />
+                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-400 rounded-br-lg" />
 
                         {/* Top Detection HUD */}
                         <div className="bg-black/85 backdrop-blur-md px-4 py-2 rounded-xl flex items-center gap-2 border border-green-500/30 text-green-400 animate-bounce">
@@ -432,11 +494,11 @@ export default function SmartDoorPage() {
                     )}
 
                     {!detectedName && (
-                      <div className="absolute inset-4 border border-blue-500/20 rounded-lg pointer-events-none flex flex-col items-center justify-between p-6 z-20">
-                        <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-blue-500/30" />
-                        <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-blue-500/30" />
-                        <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-blue-500/30" />
-                        <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-blue-500/30" />
+                      <div className="absolute inset-4 border border-blue-500/20 rounded-2xl pointer-events-none flex flex-col items-center justify-between p-6 z-20">
+                        <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-blue-500/30 rounded-tl-lg" />
+                        <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-blue-500/30 rounded-tr-lg" />
+                        <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-blue-500/30 rounded-bl-lg" />
+                        <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-blue-500/30 rounded-br-lg" />
 
                         <div className="bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full flex items-center gap-2 border border-blue-500/20 text-blue-400 font-mono text-xs animate-pulse">
                           <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
@@ -453,7 +515,7 @@ export default function SmartDoorPage() {
                       <VideoOff className="w-4 h-4 mr-2 text-red-500 group-hover:text-white" />
                       Turn Off Camera
                     </button>
-                  </>
+                  </div>
                 ) : isScanning ? (
                   <div className="flex flex-col items-center">
                     <div className="w-16 h-16 border-4 border-t-[#FDD34D] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mb-4" />
@@ -569,12 +631,12 @@ export default function SmartDoorPage() {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                      {log.file.startsWith("http") ? (
+                      {log.file?.startsWith("http") ? (
                         <a href={log.file} target="_blank" rel="noopener noreferrer" className="block mt-2 rounded-lg overflow-hidden border border-[#262626] w-24 h-16 hover:border-white transition-colors">
                           <img src={log.file} alt={log.title} className="w-full h-full object-cover" />
                         </a>
                       ) : (
-                        <p className="text-xs text-[#ADAAAA] mt-1">{log.file}</p>
+                        <p className="text-xs text-[#ADAAAA] mt-1">{log.file || "No image captured"}</p>
                       )}
                       <div className="flex items-center text-xs text-[#5E5E5E] mt-2">
                         <Clock className="w-3 h-3 mr-1" />
@@ -585,9 +647,18 @@ export default function SmartDoorPage() {
                 ))}
               </div>
 
-              <button className="w-full mt-4 py-3 border border-[#262626] text-[#ADAAAA] hover:text-white hover:bg-[#1A1A1A] rounded-xl font-medium transition-colors">
-                View Full History +
-              </button>
+              {hasMore ? (
+                <button 
+                  onClick={() => setLimit(prev => prev + 20)}
+                  className="w-full mt-4 py-3 border border-[#262626] text-[#ADAAAA] hover:text-white hover:bg-[#1A1A1A] rounded-xl font-medium transition-colors cursor-pointer"
+                >
+                  View Full History +
+                </button>
+              ) : (
+                <p className="w-full text-center mt-6 text-xs text-[#5E5E5E] font-mono">
+                  ALL LOGS LOADED
+                </p>
+              )}
             </div>
           </div>
         </main>

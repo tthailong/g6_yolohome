@@ -1,15 +1,23 @@
-# Smart Home Dashboard
+# G6 YoloHome: Smart Home Management Ecosystem
 
-A modern, responsive smart home dashboard built with Next.js and Tailwind CSS.
+G6 YoloHome is a real-time IoT smart home system that connects a web dashboard with Yolobit microcontrollers. Sensor data and control commands are exchanged through the Adafruit IO MQTT broker and WebSockets, allowing users to monitor and control devices remotely using the web application and Ohstem App.
 
-## Features
+---
 
-- **Responsive Design**: Adapts to different screen sizes (desktop, tablet, mobile).
-- **Dark Mode**: Built-in dark theme with custom color palette.
-- **Sidebar Navigation**: Collapsible sidebar with icons.
-- **Device Management**: Add, view, and control smart devices.
-- **Device Detail Pages**: Dedicated pages for different device types (Lamp, Door).
-- **Custom Components**: Reusable UI components for a premium look and feel.
+## Key Features
+
+*   **Sanctuary Access (RBAC)**: Manages permissions across multiple homes.
+    *   Assigns roles: Owner, Manager, and Member.
+    *   Handles invitation flows (invite, accept/reject, delete members).
+*   **Dashboard Monitoring**: Reads temperature, humidity, and earthquake data from Adafruit IO. Reads face detection data from database.
+    *   Updates the dashboard instantly using WebSockets.
+*   **Appliance Control**: Control fans, lights, and door states from the web, IR remote, or voice commands.
+*   **Smart Door**: Detects faces using a webcam feed.
+    *   Unlocks the door automatically for recognized family members.
+    *   Saves captured photos to Cloudinary and the database.
+    *   Uses a 2s confirmation threshold and 5-minute cooldown per person to avoid duplicate logs.
+
+---
 
 ## Tech Stack
 
@@ -20,13 +28,20 @@ A modern, responsive smart home dashboard built with Next.js and Tailwind CSS.
 - **Backend**: [FastAPI](https://fastapi.tiangolo.com/)
 - **Database**: [MySQL](https://www.mysql.com/)
 - **IoT Integration**: [Adafruit IO](https://io.adafruit.com/)
+- **Cloud Storage**: [Cloudinary](https://cloudinary.com/) (for storing camera log images)
+- **Real-time Channel**: [WebSockets](https://developer.mozilla.org/en-US/docs/Web/API/Websockets_API) (for dashboard telemetry and camera log updates)
+- **AI Recognition**: [Teachable Machine](https://teachablemachine.withgoogle.com/) / [TensorFlow.js](https://js.tensorflow.org/) (for client-side face recognition)
+
+---
+
 ## Getting Started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [npm](https://www.npmjs.com/) (or [yarn](https://yarnpkg.com/))
-- [Python 3.10+](https://www.python.org/)
+*   [Node.js](https://nodejs.org/) (v22.19.0 or higher recommended)
+*   [Python 3.10+](https://www.python.org/)
+*   [MySQL Server](https://www.mysql.com/)
+
 ### Installation
 
 1. Clone the repository:
@@ -83,6 +98,19 @@ ADAFRUIT_IO_KEY=YOUR_ADAFRUIT_IO_KEY
 CLOUDINARY_CLOUD_NAME=YOUR_CLOUDINARY_CLOUD_NAME
 CLOUDINARY_API_KEY=YOUR_CLOUDINARY_API_KEY
 CLOUDINARY_API_SECRET=YOUR_CLOUDINARY_API_SECRET
+
+# SMTP Credentials
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=YOUR_SMTP_USERNAME
+SMTP_PASSWORD=YOUR_SMTP_PASSWORD
+```
+
+Create a `.env` file in the `frontend/` directory with the following content:
+
+```env
+# Teachable Machine Credentials
+NEXT_PUBLIC_TEACHABLE_MACHINE_URL=YOUR_URL
 ```
 
 ### Development
@@ -114,16 +142,18 @@ g6_yolohome/
 ├── backend/                   # FastAPI Backend
 │   ├── api/                   # API Core logic
 │   │   ├── routers/           # API Route Handlers
+│   │   ├── adafruit_utils.py  # Adafruit IO utils
+│   │   ├── database.py        # Connection setup
+│   │   ├── deps.py            # Dependencies
+│   │   ├── email_utils.py     # Email utils
 │   │   ├── main.py            # Server entry point
 │   │   ├── models.py          # Database models
-│   │   ├── schemas.py         # Pydantic models
-│   │   ├── database.py        # Connection setup
 │   │   ├── mqtt_manager.py    # MQTT Manager
-│   │   ├── deps.py            # Dependencies
+│   │   ├── schemas.py         # Pydantic models
 │   │   ├── socket_manager.py  # Socket Manager
 │   │   └── .env               # Environment variables
-│   ├── requirements.txt       # Dependencies
-│   └── g6yolohome.sql         # Database Initialization
+│   ├── g6yolohome.sql         # Database Initialization
+│   └── requirements.txt       # Dependencies
 ├── frontend/                  # Next.js Frontend
 │   ├── app/                   # App Router pages
 │   │   ├── contexts/          # Context pages
@@ -131,7 +161,8 @@ g6_yolohome/
 │   │   │   ├── page.tsx       # Device list
 │   │   │   ├── lamp/          # Lamp page
 │   │   │   └── door/          # Door page
-│   │   └── ...                # More pages
+│   │   ├── ...                # More pages
+│   │   └── .env               # Environment variables
 │   ├── components/            # UI components
 │   ├── context/               # React Context (State)
 │   └── lib/                   # API Clients & Helpers
