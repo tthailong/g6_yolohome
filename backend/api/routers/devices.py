@@ -1,8 +1,9 @@
-from fastapi import APIRouter, status, HTTPException, Depends, UploadFile, File, Form, Query
+from fastapi import APIRouter, status, HTTPException, Depends, UploadFile, File, Form, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 import os
 import time
+from email_utils import send_stranger_alert
 from datetime import datetime, date
 import cloudinary
 import cloudinary.uploader
@@ -106,53 +107,54 @@ class CameraCooldownManager:
     def __init__(self):
         self.current_name = None
         self.first_seen_at = None
-        self.stored_for_session = False
-        self.cooldown_start = None
         self.last_activity_time = None
+        
+        # Stranger cooldown state
+        self.stranger_last_stored_at = None
+        self.stranger_cooldown_duration = 300.0 # 5 minutes
 
     def process_face(self, name: str) -> str:
         now = time.time()
         name_clean = name.strip() if name else "unknown"
+        lower_name = name_clean.lower()
         
-        # If no activity for 10 seconds, reset tracking entirely (e.g. people walked away)
+        # If no activity for 10 seconds, reset current tracking name (but NOT the cooldown)
         if self.last_activity_time and (now - self.last_activity_time >= 10.0):
             self.current_name = None
             self.first_seen_at = None
-            self.stored_for_session = False
-            self.cooldown_start = None
             
         self.last_activity_time = now
         
-        # If no face is currently tracked, or the face name changed:
+        # If tracking name changes, reset the 2-second timer
         if self.current_name is None or self.current_name != name_clean:
             self.current_name = name_clean
             self.first_seen_at = now
-            self.stored_for_session = False
-            self.cooldown_start = None
             return 'wait'
             
-        # Same face as currently tracked
-        if not self.stored_for_session:
-            elapsed = now - self.first_seen_at
-            if elapsed >= 2.0:
-                return 'store'
-            else:
-                return 'wait'
-        else:
-            # Already stored. Check 5-minute (300 seconds) cooldown.
-            elapsed_cooldown = now - self.cooldown_start
-            if elapsed_cooldown >= 300.0:
-                self.first_seen_at = now
-                self.stored_for_session = False
-                self.cooldown_start = None
-                return 'wait'
-            else:
-                return 'cooldown'
+        # Check if 2 seconds of continuous recognition have elapsed
+        elapsed = now - self.first_seen_at
+        if elapsed < 2.0:
+            return 'wait'
+            
+        # Continuous recognition reached. Now check cooldown.
+        if lower_name == "stranger":
+            if self.stranger_last_stored_at is not None:
+                elapsed_cooldown = now - self.stranger_last_stored_at
+                if elapsed_cooldown < self.stranger_cooldown_duration:
+                    return 'cooldown'
+                    
+        return 'store'
 
-    def mark_stored(self):
-        self.stored_for_session = True
-        self.cooldown_start = time.time()
-        self.last_activity_time = time.time()
+    def mark_stored(self, name: str):
+        now = time.time()
+        lower_name = name.strip().lower() if name else "unknown"
+        
+        if lower_name == "stranger":
+            # Start stranger cooldown
+            self.stranger_last_stored_at = now
+        else:
+            # Storing a family member or background resets the stranger cooldown
+            self.stranger_last_stored_at = None
 
 cooldown_manager = CameraCooldownManager()
 
@@ -167,6 +169,7 @@ cloudinary.config(
 async def upload_camera_image(
     db: db_dependency,
     user: user_dependency,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     person_name: str = Form(...),
     device_id: int = Form(5)
@@ -185,7 +188,7 @@ async def upload_camera_image(
         }
     elif action == 'cooldown':
         # Calculate remaining cooldown time
-        remaining = 300.0 - (time.time() - cooldown_manager.cooldown_start)
+        remaining = 300.0 - (time.time() - cooldown_manager.stranger_last_stored_at)
         return {
             "status": "cooldown",
             "message": f"Face '{face_name}' is in cooldown. {int(remaining)} seconds remaining.",
@@ -203,6 +206,20 @@ async def upload_camera_image(
         if not device:
             raise HTTPException(status_code=404, detail="No suitable camera device found in database.")
         device_id = device.id
+
+    # If face_name is "background", reset the stranger cooldown and return success immediately without saving to cloud/db
+    if face_name.lower() == "background":
+        cooldown_manager.mark_stored(face_name)
+        return {
+            "status": "stored",
+            "message": "Background detected. Cooldown reset, not saved to cloud.",
+            "data": {
+                "id": None,
+                "url": None,
+                "person_name": face_name,
+                "created_at": datetime.now().isoformat()
+            }
+        }
 
     try:
         # 4. Upload image to Cloudinary
@@ -226,7 +243,7 @@ async def upload_camera_image(
         db.refresh(db_camera)
         
         # 6. Mark as stored in cooldown manager to start the 5-minute cooldown
-        cooldown_manager.mark_stored()
+        cooldown_manager.mark_stored(face_name)
 
         # Broadcast camera update to WebSockets for real-time dashboard tracking
         try:
@@ -258,6 +275,28 @@ async def upload_camera_image(
                     print(f"[Camera Auto-Unlock] Failed to initialize MQTT connection for home {device.home_id}")
             except Exception as e:
                 print(f"[Camera Auto-Unlock] Error publishing unlock command: {str(e)}")
+        
+        # 8. If the person is a stranger, send an alert email to all accepted home members
+        if lower_name == "stranger":
+            try:
+                members = db.query(models.User).join(
+                    models.UserHome, models.User.id == models.UserHome.user_id
+                ).filter(
+                    models.UserHome.home_id == device.home_id,
+                    models.UserHome.status == models.UserHomeStatus.accepted
+                ).all()
+                
+                home_name = device.home.name if device.home else "My Home"
+                for member in members:
+                    background_tasks.add_task(
+                        send_stranger_alert,
+                        email=member.email,
+                        username=member.username,
+                        home_name=home_name,
+                        image_url=url
+                    )
+            except Exception as e:
+                print(f"[Email Trigger] Error initiating stranger alert emails: {str(e)}")
         
         return {
             "status": "stored",
@@ -364,5 +403,7 @@ def delete_camera_log(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database deletion failed: {str(e)}")
+
+# Trigger reload to load new env variables
 
 

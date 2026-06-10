@@ -84,16 +84,26 @@ function MembersCard({ members, cameraLogs }: { members: any[]; cameraLogs: any[
     
     // Member is active if recognized in the last 12 hours
     if (diffHours < 12) {
-      const name = log.person_name?.trim().toLowerCase();
-      if (name && name !== "stranger" && name !== "background") {
+      const name = log.person_name?.trim();
+      if (name && name.toLowerCase() !== "stranger" && name.toLowerCase() !== "background") {
         activeMemberNames.add(name);
       }
     }
   });
 
-  const activeMembers = members.filter(m => {
-    const nameLower = (m.name || m.username || "").trim().toLowerCase();
-    return activeMemberNames.has(nameLower);
+  const activeMembers = Array.from(activeMemberNames).map(name => {
+    const nameLower = name.toLowerCase();
+    // Try to find matching registered member (exact or substring match)
+    const matched = members.find(m => {
+      const uLower = (m.name || m.username || "").trim().toLowerCase();
+      return uLower === nameLower || uLower.includes(nameLower) || nameLower.includes(uLower);
+    });
+
+    return {
+      id: matched?.id || name,
+      name: matched?.name || matched?.username || name,
+      username: matched?.username || name
+    };
   });
 
   const activeCount = activeMembers.length;

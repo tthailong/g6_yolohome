@@ -34,23 +34,37 @@ export default function GlobalVoiceListener() {
       
       setLastCommand(transcript);
 
-      if (transcript.includes("turn on") && (transcript.includes("fan") || transcript.includes("ceiling fan"))) {
-        updateDeviceState("dadn.fan-state", "1");
-        updateDeviceState("dadn.fan-speed", "50");
+      const isTurnOn = transcript.includes("turn on") || transcript.includes("open");
+      const isTurnOff = transcript.includes("turn off") || transcript.includes("close");
+
+      // 1. Fan Command
+      if ((isTurnOn || isTurnOff) && (transcript.includes("fan") || transcript.includes("ceiling fan"))) {
+        if (isTurnOn) {
+          updateDeviceState("dadn.fan-state", "1");
+          updateDeviceState("dadn.fan-speed", "50");
+        } else {
+          updateDeviceState("dadn.fan-state", "0");
+        }
       } 
-      else if (transcript.includes("turn off") && (transcript.includes("fan") || transcript.includes("ceiling fan"))) {
-        updateDeviceState("dadn.fan-state", "0");
+      // 2. LED / Light / Lamp Command
+      else if ((isTurnOn || isTurnOff) && (transcript.includes("led") || transcript.includes("light") || transcript.includes("lamp"))) {
+        updateDeviceState("dadn.led-state", isTurnOn ? "1" : "0");
       }
-      else if (transcript.includes("turn on") && (transcript.includes("led") || transcript.includes("light") || transcript.includes("lamp"))) {
-        updateDeviceState("dadn.led-state", "1");
-      }
-      else if (transcript.includes("turn off") && (transcript.includes("led") || transcript.includes("light") || transcript.includes("lamp"))) {
-        updateDeviceState("dadn.led-state", "0");
+      // 3. Door Lock Command
+      else if (transcript.includes("door") || transcript.includes("lock") || transcript.includes("gate")) {
+        const isUnlock = isTurnOn || transcript.includes("unlock");
+        const isLock = isTurnOff || transcript.includes("lock");
+        
+        if (isUnlock) {
+          updateDeviceState("dadn.door-state", "0"); // 0 represents unlocked/open
+        } else if (isLock) {
+          updateDeviceState("dadn.door-state", "1"); // 1 represents locked/closed
+        }
       }
     };
 
     recognition.onerror = (event: any) => {
-      console.error("Voice recognition error:", event.error);
+      console.warn("Voice recognition error:", event.error);
       setIsListening(false);
     };
 

@@ -247,32 +247,8 @@ export default function DevicesPage() {
   const router = useRouter();
   const { deviceStates, updateDeviceState } = useDevices();
   const [showNotifications, setShowNotifications] = useState(true);
-  const [animatingFans, setAnimatingFans] = useState<Record<string, boolean>>({});
   const [isBedroomDoorLocked, setIsBedroomDoorLocked] = useState(true);
   const lastActionTime = useRef(0);
-  const prevDeviceStatesRef = useRef<Record<string, any>>({});
-
-  // Monitor fan states for temporary animation
-  useEffect(() => {
-    Object.keys(deviceStates).forEach(feed => {
-      if (feed === "dadn.fan-state") {
-        const isCurrentlyOn = deviceStates[feed] === "1";
-        const wasPreviouslyOn = prevDeviceStatesRef.current[feed] === "1";
-
-        // Trigger ONLY on transition from OFF/Undefined -> ON
-        if (isCurrentlyOn && !wasPreviouslyOn) {
-          if (!animatingFans[feed]) {
-            setAnimatingFans(prev => ({ ...prev, [feed]: true }));
-            setTimeout(() => {
-              setAnimatingFans(prev => ({ ...prev, [feed]: false }));
-            }, 1500);
-          }
-        }
-      }
-    });
-    // Update ref for next run
-    prevDeviceStatesRef.current = { ...deviceStates };
-  }, [deviceStates]);
 
   // Map global context state to our room data structure
   const roomData = INITIAL_ROOMS.map(room => ({
@@ -296,14 +272,14 @@ export default function DevicesPage() {
       if (device.feedName === "dadn.door-state") {
         const isLocked = globalValue === "1";
         updatedDevice.isActive = isLocked;
-        updatedDevice.status = isLocked ? "locked" : "unlocked";
+        //updatedDevice.status = isLocked ? "locked" : "unlocked";
         updatedDevice.subtitle = isLocked ? "Secured" : "Unlocked";
         updatedDevice.icon = <LockIcon />;
       }
 
       if (device.id === "d6") {
         updatedDevice.isActive = isBedroomDoorLocked;
-        updatedDevice.status = isBedroomDoorLocked ? "locked" : "unlocked";
+        //updatedDevice.status = isBedroomDoorLocked ? "locked" : "unlocked";
         updatedDevice.subtitle = isBedroomDoorLocked ? "Secured" : "Unlocked";
       }
 
@@ -319,8 +295,8 @@ export default function DevicesPage() {
         } else {
           updatedDevice.subtitle = "Off";
         }
-        // Pass the animation state to the icon
-        updatedDevice.icon = <FanIcon isOn={!!animatingFans[device.feedName || ""]} />;
+        // Pass the active state directly to the icon to spin continuously when ON
+        updatedDevice.icon = <FanIcon isOn={isActivated} />;
       }
 
       if (device.feedName?.includes("temperature")) {

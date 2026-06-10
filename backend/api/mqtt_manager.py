@@ -54,6 +54,15 @@ class AdafruitMQTTClient:
             feed_key = msg.topic.split('/')[-1]
             print(f"DEBUG: Received message on {msg.topic}: {payload}")
             
+            # Check for earthquake detection and trigger email alerts BEFORE sending to frontend
+            if feed_key == "dadn.earthquake-detected" and payload != "0" and payload.strip() != "":
+                print(f"DEBUG: Earthquake detected on Home {self.home_id}! Initiating background email alerts...")
+                threading.Thread(
+                    target=send_earthquake_alert_to_home_members,
+                    args=(self.home_id,),
+                    daemon=True
+                ).start()
+
             # Broadcast to WebSockets
             message = {
                 "type": "SENSOR_UPDATE",
@@ -117,3 +126,31 @@ def stop_all_mqtt():
     for client in active_mqtt_clients.values():
         client.stop()
     active_mqtt_clients.clear()
+
+def send_earthquake_alert_to_home_members(home_id: int):
+    try:
+        from database import SessionLocal
+        from email_utils import send_earthquake_alert
+        db = SessionLocal()
+        try:
+            # Query all active members of this home
+            members = db.query(models.User).join(
+                models.UserHome, models.User.id == models.UserHome.user_id
+            ).filter(
+                models.UserHome.home_id == home_id,
+                models.UserHome.status == models.UserHomeStatus.accepted
+            ).all()
+            
+            home_obj = db.query(models.Home).filter(models.Home.id == home_id).first()
+            home_name = home_obj.name if home_obj else f"Home {home_id}"
+            
+            for member in members:
+                send_earthquake_alert(
+                    email=member.email,
+                    username=member.username,
+                    home_name=home_name
+                )
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"DEBUG: Error sending earthquake alert: {str(e)}")
