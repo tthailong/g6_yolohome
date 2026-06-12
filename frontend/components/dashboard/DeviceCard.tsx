@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export type DeviceStatus = "on" | "off" | "locked" | "standby";
 
@@ -27,9 +28,10 @@ export interface DeviceCardData {
 interface DeviceCardProps {
   device: DeviceCardData;
   onToggle?: (nextState: boolean) => void;
+  isPending?: boolean;
 }
 
-export default function DeviceCard({ device, onToggle }: DeviceCardProps) {
+export default function DeviceCard({ device, onToggle, isPending }: DeviceCardProps) {
   const router = useRouter();
   const isOn = device.isActive ?? device.status === "on";
 
@@ -46,6 +48,7 @@ export default function DeviceCard({ device, onToggle }: DeviceCardProps) {
   const subColor = isYellow ? "text-[#7A6200]" : "text-[#ADAAAA]";
 
   const handleCardClick = () => {
+    if (isPending) return;
     if (device.href) {
       router.push(device.href);
     } else if (!device.isMood && onToggle) {
@@ -92,22 +95,28 @@ export default function DeviceCard({ device, onToggle }: DeviceCardProps) {
 
         {/* Toggle — hidden when noToggle is set */}
         {!device.noToggle && (
-          <button
-            className={`relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${
-              isOn ? (isMood ? "bg-[#b57bcc]" : "bg-[#5C4900]") : "bg-[#484847]"
-            }`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle?.(!isOn);
-            }}
-            aria-label="toggle"
-          >
-            <span
-              className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 ${
-                isOn ? "left-[18px] bg-[#FDD34D]" : "left-0.5 bg-[#ADAAAA]"
+          isPending ? (
+            <div className="w-9 h-5 flex items-center justify-center">
+              <Loader2 className="w-4 h-4 animate-spin text-[#FDD34D]" />
+            </div>
+          ) : (
+            <button
+              className={`relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${
+                isOn ? (isMood ? "bg-[#b57bcc]" : "bg-[#5C4900]") : "bg-[#484847]"
               }`}
-            />
-          </button>
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle?.(!isOn);
+              }}
+              aria-label="toggle"
+            >
+              <span
+                className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 ${
+                  isOn ? "left-[18px] bg-[#FDD34D]" : "left-0.5 bg-[#ADAAAA]"
+                }`}
+              />
+            </button>
+          )
         )}
       </div>
 
@@ -131,8 +140,7 @@ export function AddDeviceCard({ onClick }: { onClick?: () => void }) {
   return (
     <div
       onClick={onClick}
-      className="flex flex-col items-center justify-center gap-2 rounded-2xl min-h-[130px] cursor-pointer transition-all duration-200 hover:bg-[#1A1A1A] group"
-      style={{ background: "transparent" }}
+      className="flex flex-col items-center justify-center gap-2 rounded-2xl min-h-[130px] cursor-pointer transition-all duration-200 bg-[#1A1A1A] hover:bg-[#222222] group"
     >
       <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#262626] group-hover:bg-[#FDD34D] transition-colors duration-200">
         <svg

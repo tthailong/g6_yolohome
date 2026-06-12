@@ -4,29 +4,31 @@ import json
 
 class ConnectionManager:
     def __init__(self):
-        # Maps home_id to a list of active WebSockets
-        self.active_connections: Dict[int, List[WebSocket]] = {}
+        # Maps home_id to a list of tuples: (user_id, WebSocket)
+        self.active_connections: Dict[int, List[tuple]] = {}
 
-    async def connect(self, websocket: WebSocket, home_id: int):
+    async def connect(self, websocket: WebSocket, home_id: int, user_id: int):
         await websocket.accept()
         if home_id not in self.active_connections:
             self.active_connections[home_id] = []
-        self.active_connections[home_id].append(websocket)
-        print(f"DEBUG: WebSocket connected to home {home_id}")
+        self.active_connections[home_id].append((user_id, websocket))
+        print(f"DEBUG: User {user_id} WebSocket connected to home {home_id}")
 
-    def disconnect(self, websocket: WebSocket, home_id: int):
+    def disconnect(self, websocket: WebSocket, home_id: int, user_id: int):
         if home_id in self.active_connections:
-            self.active_connections[home_id].remove(websocket)
+            self.active_connections[home_id] = [
+                pair for pair in self.active_connections[home_id] if pair[1] != websocket
+            ]
             if not self.active_connections[home_id]:
                 del self.active_connections[home_id]
-        print(f"DEBUG: WebSocket disconnected from home {home_id}")
+        print(f"DEBUG: User {user_id} WebSocket disconnected from home {home_id}")
 
     async def broadcast_to_home(self, home_id: int, message: dict):
         if home_id in self.active_connections:
-            for connection in self.active_connections[home_id]:
+            for user_id, connection in self.active_connections[home_id]:
                 try:
                     await connection.send_text(json.dumps(message))
                 except Exception as e:
-                    print(f"DEBUG: Error broadcasting to home {home_id}: {str(e)}")
+                    print(f"DEBUG: Error broadcasting to user {user_id} in home {home_id}: {str(e)}")
 
 manager = ConnectionManager()

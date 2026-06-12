@@ -93,11 +93,20 @@ def control_device(db: db_dependency, user: user_dependency, command: schemas.De
     if not client:
         raise HTTPException(status_code=500, detail="Could not initialize MQTT connection")
     
-    # 2. Publish the command
+    # 2. Publish the command (fire-and-forget)
     try:
         client.publish(command.feed_name, command.value)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"MQTT Publish failed: {str(e)}")
+        
+    # 3. Wait until the listener (on_message) receives the confirmed value back from Adafruit IO
+    from mqtt_manager import wait_for_mqtt_confirmation
+    confirmed = wait_for_mqtt_confirmation(command.home_id, command.feed_name, command.value, timeout=5.0)
+    if not confirmed:
+        raise HTTPException(
+            status_code=504, 
+            detail="Timeout waiting for hardware/broker confirmation from Adafruit IO"
+        )
     
     return {"status": "success", "feed": command.feed_name, "value": command.value}
 

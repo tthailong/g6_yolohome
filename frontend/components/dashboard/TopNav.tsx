@@ -8,13 +8,14 @@ const MONTHS = [
   "January","February","March","April","May","June",
   "July","August","September","October","November","December",
 ];
-const DAYS = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+const DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
 function getFirstDayOfWeek(year: number, month: number) {
-  return new Date(year, month, 1).getDay();
+  const day = new Date(year, month, 1).getDay();
+  return (day + 6) % 7;
 }
 
 /* ── Calendar popup ──────────────────────────────────── */
@@ -255,7 +256,7 @@ export default function TopNav({
           style={{ border: "1px solid #484847", background: "#262626" }}
         >
           <img
-            src="https://api.builder.io/api/v1/image/assets/TEMP/b37aa6d1c6cbc969bfe2b07a8b3ddc5dc6d58170?width=60"
+            src="https://img.pokemondb.net/artwork/large/dragonair.jpg"
             alt="User avatar"
             className="w-full h-full object-cover"
           />

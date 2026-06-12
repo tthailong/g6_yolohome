@@ -12,9 +12,27 @@ import models
 main_loop = None
 mqtt_lock = threading.Lock()
 
+confirmations_lock = threading.Lock()
+pending_confirmations = {}
+
 def set_main_loop(loop):
     global main_loop
     main_loop = loop
+
+def wait_for_mqtt_confirmation(home_id: int, feed_key: str, value: str, timeout: float = 5.0) -> bool:
+    event = threading.Event()
+    conf_key = (home_id, feed_key, str(value).strip())
+    
+    with confirmations_lock:
+        pending_confirmations[conf_key] = event
+        
+    try:
+        # Wait for the event to be set by the on_message thread
+        completed = event.wait(timeout=timeout)
+        return completed
+    finally:
+        with confirmations_lock:
+            pending_confirmations.pop(conf_key, None)
 
 class AdafruitMQTTClient:
     def __init__(self, home_id: int, username: str = None, key: str = None):
@@ -53,6 +71,13 @@ class AdafruitMQTTClient:
             payload = msg.payload.decode()
             feed_key = msg.topic.split('/')[-1]
             print(f"DEBUG: Received message on {msg.topic}: {payload}")
+            
+            # Check for any pending HTTP request waiting for this specific confirmation
+            conf_key = (self.home_id, feed_key, payload.strip())
+            with confirmations_lock:
+                if conf_key in pending_confirmations:
+                    print(f"DEBUG: Confirming pending control request for key: {conf_key}")
+                    pending_confirmations[conf_key].set()
             
             # Check for earthquake detection and trigger email alerts BEFORE sending to frontend
             if feed_key == "dadn.earthquake-detected" and payload != "0" and payload.strip() != "":

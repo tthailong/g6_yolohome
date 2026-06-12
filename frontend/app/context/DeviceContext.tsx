@@ -7,6 +7,7 @@ import { deviceService } from "@/lib/api/devices";
 
 interface DeviceContextType {
   deviceStates: Record<string, any>; // feed_name -> value
+  pendingDevices: Record<string, boolean>; // feed_name -> isPending
   updateDeviceState: (feedName: string, value: any) => Promise<void>;
   isLoading: boolean;
   refreshStates: () => Promise<void>;
@@ -18,6 +19,7 @@ const DeviceContext = createContext<DeviceContextType | undefined>(undefined);
 
 export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const [deviceStates, setDeviceStates] = useState<Record<string, any>>({});
+  const [pendingDevices, setPendingDevices] = useState<Record<string, boolean>>({});
   const [selectedHomeId, setSelectedHomeId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -63,6 +65,10 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
 
     const ws = new WebSocketClient(selectedHomeId, (message) => {
       if (message.type === "SENSOR_UPDATE") {
+        setPendingDevices(prev => ({
+          ...prev,
+          [message.feed_name]: false
+        }));
         setDeviceStates(prev => ({
           ...prev,
           [message.feed_name]: message.value
@@ -77,8 +83,8 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const updateDeviceState = async (feedName: string, value: any) => {
     if (!selectedHomeId) return;
 
-    // Optimistic update
-    setDeviceStates(prev => ({ ...prev, [feedName]: value }));
+    // Mark device as pending (UI shows spinner) instead of updating the state immediately
+    setPendingDevices(prev => ({ ...prev, [feedName]: true }));
     
     try {
       await deviceService.control({
@@ -86,7 +92,13 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
         feed_name: feedName,
         value: value.toString()
       });
+
+      // Since the backend HTTP call blocks until confirmation is received,
+      // a successful response means the state change is confirmed.
+      setDeviceStates(prev => ({ ...prev, [feedName]: value.toString() }));
+      setPendingDevices(prev => ({ ...prev, [feedName]: false }));
     } catch (error) {
+      setPendingDevices(prev => ({ ...prev, [feedName]: false }));
       console.error(`Failed to update device ${feedName}:`, error);
       refreshStates();
     }
@@ -95,6 +107,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   return (
     <DeviceContext.Provider value={{ 
       deviceStates, 
+      pendingDevices,
       updateDeviceState, 
       isLoading, 
       refreshStates, 

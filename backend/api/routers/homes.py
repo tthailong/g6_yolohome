@@ -235,6 +235,11 @@ def get_home_members(db: db_dependency, user: user_dependency, home_id: int):
         UserHome.status.in_([UserHomeStatus.accepted, UserHomeStatus.pending])
     ).all()
     
+    # Check socket manager to see which user IDs are currently active
+    from socket_manager import manager as socket_manager
+    active_pairs = socket_manager.active_connections.get(home_id, [])
+    online_user_ids = {u_id for u_id, ws in active_pairs}
+    
     res = []
     for m in members:
         res.append({
@@ -244,7 +249,8 @@ def get_home_members(db: db_dependency, user: user_dependency, home_id: int):
             "username": m.user.username,
             "email": m.user.email,
             "role": m.role.value,
-            "status": "Active" if m.status == UserHomeStatus.accepted else "Pending"
+            "status": "Active" if m.status == UserHomeStatus.accepted else "Pending",
+            "is_online": m.user.id in online_user_ids
         })
     return res
 

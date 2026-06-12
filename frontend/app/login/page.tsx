@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useContext, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthContext from "@/app/context/AuthContext";
-import { User, Lock, ScanFace, Fingerprint } from "lucide-react";
+import { User, Lock } from "lucide-react";
 
 export default function Login() {
   const { login } = useContext(AuthContext);
@@ -27,7 +27,6 @@ export default function Login() {
         <div className="bg-[#131313] rounded-[32px] p-10 relative overflow-hidden">
           <div className="mb-10 text-center">
             <h2 className="text-white font-serif text-3xl font-extrabold tracking-[-0.75px] mb-2">Welcome Back</h2>
-            <p className="text-[#ADAAAA] text-sm tracking-[0.35px]">Enter your credentials to manage your sanctuary.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -40,7 +39,7 @@ export default function Login() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="alex.rivera"
+                  placeholder="nguyenvana"
                   className="w-full bg-[#262626] text-white placeholder-[#767575] rounded-xl py-4 px-5 focus:outline-none focus:ring-1 focus:ring-[#FDD34D] transition-colors"
                   required
                 />
@@ -74,18 +73,6 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="flex items-center pt-2">
-              <input
-                id="remember_me"
-                name="remember_me"
-                type="checkbox"
-                className="h-5 w-5 bg-[#262626] border-none rounded focus:ring-0 text-[#FDD34D] cursor-pointer"
-              />
-              <label htmlFor="remember_me" className="ml-3 block text-sm text-[#ADAAAA] cursor-pointer">
-                Remember this device
-              </label>
-            </div>
-
             <div className="pt-4">
               <button
                 type="submit"
@@ -96,33 +83,11 @@ export default function Login() {
             </div>
           </form>
 
-          <div className="mt-12">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#484847]/30" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="px-4 bg-[#131313] text-[#ADAAAA] font-semibold uppercase tracking-[-0.6px]">
-                  Quick Access
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-center gap-6">
-              <button className="h-14 w-14 rounded-2xl bg-[#201F1F] flex items-center justify-center text-[#ADAAAA] hover:text-white transition-colors cursor-pointer border border-transparent hover:border-[#484847]/50">
-                <ScanFace className="w-6 h-6" />
-              </button>
-              <button className="h-14 w-14 rounded-2xl bg-[#201F1F] flex items-center justify-center text-[#ADAAAA] hover:text-white transition-colors cursor-pointer border border-transparent hover:border-[#484847]/50">
-                 <Fingerprint className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="mt-8 text-center">
-              <span className="text-[#ADAAAA] text-sm">Dont have account? </span>
-              <Link href="/register" className="text-[#FDD34D] font-bold text-sm hover:text-white transition-colors">
-                Sign up
-              </Link>
-            </div>
+          <div className="mt-8 text-center">
+            <span className="text-[#ADAAAA] text-sm">Dont have account? </span>
+            <Link href="/register" className="text-[#FDD34D] font-bold text-sm hover:text-white transition-colors">
+              Sign up
+            </Link>
           </div>
         </div>
       </div>

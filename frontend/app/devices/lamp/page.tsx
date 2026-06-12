@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/dashboard/Sidebar";
 import LightTopNav from "@/components/dashboard/LightTopNav";
 import { useDevices } from "@/app/context/DeviceContext";
+import { Loader2 } from "lucide-react";
 
 /* ── Icons ───────────────────────────────────────────────────────── */
 const BulbIcon = () => (
@@ -29,10 +30,11 @@ const SunLargeIcon = () => (
 
 export default function SmartLightPage() {
   const router = useRouter();
-  const { deviceStates, updateDeviceState } = useDevices();
+  const { deviceStates, pendingDevices, updateDeviceState } = useDevices();
   const [showRightPanel, setShowRightPanel] = useState(true);
 
   const isOn = deviceStates["dadn.led-state"] === "1";
+  const isPending = pendingDevices["dadn.led-state"] === true;
   const rawBrightness = deviceStates["dadn.led-sate"] || "85";
   const brightness = Math.round(parseFloat(rawBrightness));
 
@@ -56,6 +58,7 @@ export default function SmartLightPage() {
   };
 
   const handleToggle = async () => {
+    if (isPending) return;
     const nextState = !isOn;
     lastActionTime.current = Date.now();
     try {
@@ -74,7 +77,7 @@ export default function SmartLightPage() {
         <LightTopNav 
           showNotifications={false}
           onToggleNotifications={() => {}}
-          title="Chandelier Control"
+          title="Lamp"
         />
 
         <main className="flex-1 mt-14 overflow-hidden flex flex-row relative">
@@ -104,11 +107,11 @@ export default function SmartLightPage() {
             {/* Header */}
             <div className="text-center mb-10 w-full relative">
               <h3 className="font-jakarta text-[10px] uppercase tracking-widest text-[#ADAAAA] mb-2">Device Status</h3>
-              <h1 className="font-manrope font-extrabold text-4xl text-white tracking-tight">Main Chandelier</h1>
+              <h1 className="font-manrope font-extrabold text-4xl text-white tracking-tight">Lamp</h1>
             </div>
 
             {/* Central Graphic */}
-            <div className="relative w-[340px] h-[340px] flex items-center justify-center mb-12 cursor-pointer transition-transform hover:scale-105 active:scale-95" onClick={handleToggle}>
+            <div className="relative w-[340px] h-[340px] flex items-center justify-center mb-12 cursor-pointer transition-transform hover:scale-105 active:scale-95" onClick={isPending ? undefined : handleToggle}>
               
               {/* Outer faint rings */}
               <div
@@ -138,7 +141,11 @@ export default function SmartLightPage() {
                 }}
               >
                 <div style={{ color: isOn ? "#5C4900" : "#ADAAAA" }}>
-                  <BulbIcon />
+                  {isPending ? (
+                    <Loader2 className="w-12 h-12 animate-spin" />
+                  ) : (
+                    <BulbIcon />
+                  )}
                 </div>
               </div>
             </div>

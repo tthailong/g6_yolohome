@@ -72,7 +72,7 @@ export default function LightTopNav({
           style={{ background: "#FFD8CA" }}
         >
           <img
-            src="https://api.builder.io/api/v1/image/assets/TEMP/b37aa6d1c6cbc969bfe2b07a8b3ddc5dc6d58170?width=60"
+            src="https://img.pokemondb.net/artwork/large/dragonair.jpg"
             alt="User avatar"
             className="w-full h-full object-cover"
           />
