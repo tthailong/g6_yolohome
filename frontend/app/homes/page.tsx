@@ -63,8 +63,15 @@ export default function HomesPage() {
 
         <div className="w-full flex justify-between items-center px-16 pt-16 z-10 relative">
           <h1 className="text-[#FDD34D] font-serif text-[24px] font-bold tracking-[-0.6px]">G6 YoloHome</h1>
-          <div className="w-8 h-8 rounded-full border border-[#484847]/50 flex items-center justify-center text-[#ADAAAA] bg-[#1a1a1a]">
-             <span className="material-symbols-outlined text-[16px]">person</span>
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden cursor-pointer"
+            style={{ border: "1px solid #484847", background: "#262626" }}
+          >
+            <img
+              src="https://img.pokemondb.net/artwork/large/dragonair.jpg"
+              alt="User avatar"
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
 

@@ -5,8 +5,9 @@ export class WebSocketClient {
   private reconnectInterval: number = 5000;
 
   constructor(homeId: number, onMessage: (data: any) => void) {
-    // Assuming backend is at localhost:8000
-    this.url = `ws://localhost:8000/ws/${homeId}`;
+    // Retrieve token for WebSocket authentication and pass as query param
+    const token = typeof window !== 'undefined' ? localStorage.getItem("token") : "";
+    this.url = `ws://localhost:8000/ws/${homeId}${token ? `?token=${token}` : ""}`;
     this.onMessageCallback = onMessage;
   }
 

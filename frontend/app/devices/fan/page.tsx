@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/dashboard/Sidebar";
 import LightTopNav from "@/components/dashboard/LightTopNav";
 import { useDevices } from "@/app/context/DeviceContext";
+import { Loader2 } from "lucide-react";
 
 /* ── Icons ───────────────────────────────────────────────────────── */
 const FanIcon = ({ isOn }: { isOn: boolean }) => (
@@ -37,10 +38,11 @@ const SpeedHighIcon = () => (
 
 export default function SmartFanPage() {
   const router = useRouter();
-  const { deviceStates, updateDeviceState } = useDevices();
+  const { deviceStates, pendingDevices, updateDeviceState } = useDevices();
   const [showRightPanel, setShowRightPanel] = useState(true);
 
   const isOn = deviceStates["dadn.fan-state"] === "1";
+  const isPending = pendingDevices["dadn.fan-state"] === true;
   const rawSpeed = deviceStates["dadn.fan-speed"] || "50";
   const speed = Math.round(parseFloat(rawSpeed));
 
@@ -63,6 +65,7 @@ export default function SmartFanPage() {
   };
 
   const handleToggle = async () => {
+    if (isPending) return;
     const nextState = !isOn;
     lastActionTime.current = Date.now();
     try {
@@ -118,7 +121,7 @@ export default function SmartFanPage() {
             </div>
 
             {/* Central Graphic */}
-            <div className="relative w-[340px] h-[340px] flex items-center justify-center mb-12 cursor-pointer transition-transform hover:scale-105 active:scale-95" onClick={handleToggle}>
+            <div className="relative w-[340px] h-[340px] flex items-center justify-center mb-12 cursor-pointer transition-transform hover:scale-105 active:scale-95" onClick={isPending ? undefined : handleToggle}>
               
               {/* Outer faint rings (Matching Lamp Page) */}
               <div
@@ -148,7 +151,11 @@ export default function SmartFanPage() {
                 }}
               >
                 <div style={{ color: isOn ? "#5C4900" : "#ADAAAA" }}>
-                  <FanIcon isOn={isOn} />
+                  {isPending ? (
+                    <Loader2 className="w-12 h-12 animate-spin" />
+                  ) : (
+                    <FanIcon isOn={isOn} />
+                  )}
                 </div>
               </div>
             </div>

@@ -232,7 +232,7 @@ function DevicesTopNav({
           style={{ border: "1px solid #484847", background: "#262626" }}
         >
           <img
-            src="https://api.builder.io/api/v1/image/assets/TEMP/b37aa6d1c6cbc969bfe2b07a8b3ddc5dc6d58170?width=60"
+            src="https://img.pokemondb.net/artwork/large/dragonair.jpg"
             alt="User avatar"
             className="w-full h-full object-cover"
           />
@@ -245,7 +245,7 @@ function DevicesTopNav({
 
 export default function DevicesPage() {
   const router = useRouter();
-  const { deviceStates, updateDeviceState } = useDevices();
+  const { deviceStates, pendingDevices, updateDeviceState } = useDevices();
   const [showNotifications, setShowNotifications] = useState(true);
   const [isBedroomDoorLocked, setIsBedroomDoorLocked] = useState(true);
   const lastActionTime = useRef(0);
@@ -412,6 +412,7 @@ export default function DevicesPage() {
                           key={device.id} 
                           device={device} 
                           onToggle={(next) => handleDeviceToggle(device.id, next)} 
+                          isPending={pendingDevices[device.feedName || ""]}
                         />
                       ))}
                       <AddDeviceCard onClick={() => router.push("/devices/add")} />

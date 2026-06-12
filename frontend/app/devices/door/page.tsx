@@ -15,7 +15,8 @@ import {
   Clock, 
   Settings,
   Shield,
-  Trash2
+  Trash2,
+  Loader2
 } from "lucide-react";
 import Link from "next/link";
 
@@ -23,7 +24,7 @@ import { useDevices } from "@/app/context/DeviceContext";
 import api from "@/lib/api/client";
 
 export default function SmartDoorPage() {
-  const { deviceStates, updateDeviceState, refreshStates } = useDevices();
+  const { deviceStates, pendingDevices, updateDeviceState, refreshStates } = useDevices();
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -377,6 +378,7 @@ export default function SmartDoorPage() {
   }, []);
 
   const isLocked = deviceStates["dadn.door-state"] === "1";
+  const isPending = pendingDevices["dadn.door-state"] === true;
 
   const handleToggle = async (lock: boolean) => {
     try {
@@ -553,26 +555,36 @@ export default function SmartDoorPage() {
               </div>
               <div className="flex bg-[#1A1A1A] p-1 rounded-xl border border-[#262626]">
                 <button
+                  disabled={isPending}
                   onClick={() => handleToggle(false)}
                   className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all ${
                     !isLocked 
                       ? "bg-white text-black shadow-sm" 
                       : "text-[#ADAAAA] hover:text-white"
-                  }`}
+                  } ${isPending ? "opacity-75 cursor-not-allowed" : ""}`}
                 >
-                  <Unlock className="w-4 h-4 mr-2" />
-                  Unlock
+                  {isPending && isLocked ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Unlock className="w-4 h-4 mr-2" />
+                  )}
+                  {isPending && isLocked ? "Unlocking..." : "Unlock"}
                 </button>
                 <button
+                  disabled={isPending}
                   onClick={() => handleToggle(true)}
                   className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all ${
                     isLocked 
                       ? "bg-white text-black shadow-sm" 
                       : "text-[#ADAAAA] hover:text-white"
-                  }`}
+                  } ${isPending ? "opacity-75 cursor-not-allowed" : ""}`}
                 >
-                  <Lock className="w-4 h-4 mr-2" />
-                  Lock
+                  {isPending && !isLocked ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Lock className="w-4 h-4 mr-2" />
+                  )}
+                  {isPending && !isLocked ? "Locking..." : "Lock"}
                 </button>
               </div>
             </div>

@@ -74,39 +74,10 @@ function HumidityCard({ value, updatedAt }: { value: string | number; updatedAt?
   );
 }
 
-function MembersCard({ members, cameraLogs }: { members: any[]; cameraLogs: any[] }) {
-  const now = new Date().getTime();
-  const activeMemberNames = new Set<string>();
-
-  cameraLogs.forEach(log => {
-    const logTime = new Date(log.created_at).getTime();
-    const diffHours = (now - logTime) / (1000 * 60 * 60);
-    
-    // Member is active if recognized in the last 12 hours
-    if (diffHours < 12) {
-      const name = log.person_name?.trim();
-      if (name && name.toLowerCase() !== "stranger" && name.toLowerCase() !== "background") {
-        activeMemberNames.add(name);
-      }
-    }
-  });
-
-  const activeMembers = Array.from(activeMemberNames).map(name => {
-    const nameLower = name.toLowerCase();
-    // Try to find matching registered member (exact or substring match)
-    const matched = members.find(m => {
-      const uLower = (m.name || m.username || "").trim().toLowerCase();
-      return uLower === nameLower || uLower.includes(nameLower) || nameLower.includes(uLower);
-    });
-
-    return {
-      id: matched?.id || name,
-      name: matched?.name || matched?.username || name,
-      username: matched?.username || name
-    };
-  });
-
-  const activeCount = activeMembers.length;
+function MembersCard({ members }: { members: any[] }) {
+  // A member is online if status is "Active" and is_online is true
+  const onlineMembers = members.filter(m => m.is_online && m.status === "Active");
+  const onlineCount = onlineMembers.length;
 
   return (
     <div
@@ -118,12 +89,12 @@ function MembersCard({ members, cameraLogs }: { members: any[]; cameraLogs: any[
       </p>
       <div className="flex items-end gap-2 h-14">
         <span className="font-manrope font-extrabold text-5xl text-white leading-none">
-          {activeCount}
+          {onlineCount}
         </span>
-        <span className="font-manrope font-bold text-2xl pb-1" style={{ color: "#ADAAAA" }}>active</span>
+        <span className="font-manrope font-bold text-2xl pb-1 text-white">online</span>
       </div>
       <div className="flex items-center pt-1 -space-x-1.5 overflow-hidden">
-        {activeMembers.slice(0, 3).map((member, idx) => {
+        {onlineMembers.slice(0, 3).map((member, idx) => {
           const initials = (member.name || member.username || "U")
             .split(" ")
             .map((n: string) => n[0])
@@ -134,21 +105,21 @@ function MembersCard({ members, cameraLogs }: { members: any[]; cameraLogs: any[
             <div
               key={member.id || idx}
               className="w-6 h-6 rounded-full bg-[#262626] border border-[#484847] flex items-center justify-center text-white text-[8px] font-bold font-manrope flex-shrink-0"
-              title={`${member.name} (Active)`}
+              title={`${member.name} (Online)`}
             >
               {initials}
             </div>
           );
         })}
-        {activeCount > 3 && (
+        {onlineCount > 3 && (
           <div
             className="w-6 h-6 flex items-center justify-center rounded-full bg-[#262626] border border-[#484847] flex-shrink-0"
           >
-            <span className="font-manrope font-bold text-[8px] text-white">+{activeCount - 3}</span>
+            <span className="font-manrope font-bold text-[8px] text-white">+{onlineCount - 3}</span>
           </div>
         )}
-        {activeCount === 0 && (
-          <span className="text-[10px] text-[#ADAAAA] italic">No members detected recently</span>
+        {onlineCount === 0 && (
+          <span className="text-[10px] text-[#ADAAAA] italic">No members currently online</span>
         )}
       </div>
     </div>
@@ -214,6 +185,16 @@ export default function StatCards() {
           },
           ...prev
         ]);
+      } else if (message.type === "MEMBER_STATUS_UPDATE") {
+        setMembers(prevMembers => prevMembers.map(member => {
+          if (member.id === message.user_id) {
+            return {
+              ...member,
+              is_online: message.is_online
+            };
+          }
+          return member;
+        }));
       }
     });
 
@@ -229,7 +210,7 @@ export default function StatCards() {
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
       <TemperatureCard value={tempSensor?.last_value || "--"} updatedAt={tempSensor?.updated_at} />
       <HumidityCard value={humidSensor?.last_value || "--"} updatedAt={humidSensor?.updated_at} />
-      <MembersCard members={members} cameraLogs={cameraLogs} />
+      <MembersCard members={members} />
     </div>
   );
 }

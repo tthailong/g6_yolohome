@@ -51,10 +51,31 @@ app.include_router(dashboard.router)
 @app.websocket("/ws/{home_id}")
 async def websocket_endpoint(websocket: WebSocket, home_id: int):
     print(f"DEBUG: WebSocket connection attempt for home {home_id}")
+    
+    # Extract JWT token from connection query params to identify the connecting user
+    token = websocket.query_params.get("token")
+    user_id = -1
+    if token:
+        try:
+            from deps import SECRET_KEY, ALGORITHM
+            from jose import jwt
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id = payload.get('id', -1)
+        except Exception as e:
+            print(f"DEBUG: WebSocket token validation failed: {str(e)}")
+
     try:
         # Accept the connection first so the browser doesn't time out
-        await socket_manager.connect(websocket, home_id)
-        print(f"DEBUG: WebSocket connection accepted for home {home_id}")
+        await socket_manager.connect(websocket, home_id, user_id)
+        print(f"DEBUG: WebSocket connection accepted for user {user_id} in home {home_id}")
+        
+        # Broadcast that this member is now online
+        if user_id != -1:
+            await socket_manager.broadcast_to_home(home_id, {
+                "type": "MEMBER_STATUS_UPDATE",
+                "user_id": user_id,
+                "is_online": True
+            })
         
         # Initialize MQTT for this home if not already started
         db = SessionLocal()
@@ -71,7 +92,14 @@ async def websocket_endpoint(websocket: WebSocket, home_id: int):
                 # Keep the connection open
                 await websocket.receive_text()
         except WebSocketDisconnect:
-            print(f"DEBUG: WebSocket disconnected for home {home_id}")
-            socket_manager.disconnect(websocket, home_id)
+            print(f"DEBUG: WebSocket disconnected for user {user_id} in home {home_id}")
+            socket_manager.disconnect(websocket, home_id, user_id)
+            if user_id != -1:
+                # Broadcast that this member went offline
+                await socket_manager.broadcast_to_home(home_id, {
+                    "type": "MEMBER_STATUS_UPDATE",
+                    "user_id": user_id,
+                    "is_online": False
+                })
     except Exception as e:
-        print(f"DEBUG: WebSocket error for home {home_id}: {str(e)}")
+        print(f"DEBUG: WebSocket error for user {user_id} in home {home_id}: {str(e)}")
