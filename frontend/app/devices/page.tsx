@@ -10,6 +10,7 @@ import RecentActivity from "@/components/dashboard/RecentActivity";
 import { WebSocketClient } from "@/lib/api/socket";
 import { deviceService } from "@/lib/api/devices";
 import { useDevices } from "@/app/context/DeviceContext";
+import { Loader2 } from "lucide-react";
 
 /* ── Icons ───────────────────────────────────────────────────────── */
 const BulbIcon = () => (
@@ -245,8 +246,10 @@ function DevicesTopNav({
 
 export default function DevicesPage() {
   const router = useRouter();
-  const { deviceStates, pendingDevices, updateDeviceState } = useDevices();
+  const { deviceStates, pendingDevices, updateDeviceState, isLoading } = useDevices();
   const [showNotifications, setShowNotifications] = useState(true);
+
+
   const [isBedroomDoorLocked, setIsBedroomDoorLocked] = useState(true);
   const lastActionTime = useRef(0);
 
@@ -351,7 +354,16 @@ export default function DevicesPage() {
           onToggleNotifications={() => setShowNotifications(!showNotifications)}
         />
 
-        <main className="flex flex-1 mt-16 overflow-hidden">
+        <main className="flex flex-1 mt-16 overflow-hidden relative">
+          {/* Loading Blocker Overlay */}
+          {isLoading && (
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md z-50 flex flex-col items-center justify-center transition-all duration-300">
+              <Loader2 className="w-10 h-10 animate-spin text-[#FDD34D] mb-4" />
+              <p className="font-mono text-xs tracking-widest text-[#FDD34D] uppercase animate-pulse">
+                Syncing status...
+              </p>
+            </div>
+          )}
           {/* Main Scrollable Content */}
           <div className="flex-1 overflow-y-auto px-8 py-8 scrollbar-hide transition-all duration-300">
             {/* Page Header */}

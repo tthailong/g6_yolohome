@@ -30,8 +30,10 @@ const SunLargeIcon = () => (
 
 export default function SmartLightPage() {
   const router = useRouter();
-  const { deviceStates, pendingDevices, updateDeviceState } = useDevices();
+  const { deviceStates, pendingDevices, updateDeviceState, isLoading } = useDevices();
   const [showRightPanel, setShowRightPanel] = useState(true);
+
+
 
   const isOn = deviceStates["dadn.led-state"] === "1";
   const isPending = pendingDevices["dadn.led-state"] === true;
@@ -81,6 +83,15 @@ export default function SmartLightPage() {
         />
 
         <main className="flex-1 mt-14 overflow-hidden flex flex-row relative">
+          {/* Loading Blocker Overlay */}
+          {isLoading && (
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md z-50 flex flex-col items-center justify-center transition-all duration-300">
+              <Loader2 className="w-10 h-10 animate-spin text-[#FDD34D] mb-4" />
+              <p className="font-mono text-xs tracking-widest text-[#FDD34D] uppercase animate-pulse">
+                Syncing status...
+              </p>
+            </div>
+          )}
           {/* Sidebar Toggle Button (Dedicated) */}
           <button
             onClick={() => setShowRightPanel(!showRightPanel)}
