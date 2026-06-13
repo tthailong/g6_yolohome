@@ -44,6 +44,12 @@ export default function DeviceCard({ device, onToggle, isPending }: DeviceCardPr
     ? "bg-[#2D1A33]"
     : "bg-[#1A1A1A]";
 
+  const spinnerColor = isYellow 
+    ? "text-[#5C4900]" 
+    : isMood 
+    ? "text-[#F5D1FB]" 
+    : "text-[#FDD34D]";
+
   const textColor = isYellow ? "text-[#5C4900]" : "text-white";
   const subColor = isYellow ? "text-[#7A6200]" : "text-[#ADAAAA]";
 
@@ -97,7 +103,7 @@ export default function DeviceCard({ device, onToggle, isPending }: DeviceCardPr
         {!device.noToggle && (
           isPending ? (
             <div className="w-9 h-5 flex items-center justify-center">
-              <Loader2 className="w-4 h-4 animate-spin text-[#FDD34D]" />
+              <Loader2 className={`w-4 h-4 animate-spin ${spinnerColor}`} />
             </div>
           ) : (
             <button

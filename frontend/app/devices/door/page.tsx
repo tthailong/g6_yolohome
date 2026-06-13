@@ -24,7 +24,9 @@ import { useDevices } from "@/app/context/DeviceContext";
 import api from "@/lib/api/client";
 
 export default function SmartDoorPage() {
-  const { deviceStates, pendingDevices, updateDeviceState, refreshStates } = useDevices();
+  const { deviceStates, pendingDevices, updateDeviceState, refreshStates, isLoading } = useDevices();
+
+
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -440,7 +442,16 @@ export default function SmartDoorPage() {
           title="Door"
         />
 
-        <main className="flex-1 mt-14 overflow-hidden flex flex-row">
+        <main className="flex-1 mt-14 overflow-hidden flex flex-row relative">
+          {/* Loading Blocker Overlay */}
+          {isLoading && (
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md z-50 flex flex-col items-center justify-center transition-all duration-300">
+              <Loader2 className="w-10 h-10 animate-spin text-[#FDD34D] mb-4" />
+              <p className="font-mono text-xs tracking-widest text-[#FDD34D] uppercase animate-pulse">
+                Syncing status...
+              </p>
+            </div>
+          )}
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col p-8 overflow-y-auto transition-all duration-300">
 

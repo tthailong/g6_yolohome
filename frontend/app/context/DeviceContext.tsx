@@ -43,6 +43,8 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     
+    setIsLoading(true);
+    
     try {
       const summary = await dashboardService.getSummary(selectedHomeId);
       const newStates: Record<string, any> = {};
@@ -59,7 +61,19 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!selectedHomeId || !token) return;
+    const savedHomeId = localStorage.getItem("selectedHomeId");
+
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    if (!selectedHomeId) {
+      if (!savedHomeId) {
+        setIsLoading(false);
+      }
+      return;
+    }
 
     refreshStates();
 
